@@ -1,4 +1,5 @@
 import re
+import logging
 
 from typing import List, Dict, Union, Optional
 from enum import Enum
@@ -68,7 +69,7 @@ class Treepuncher(MinecraftClient):
 		self._register_handlers()
 
 		self.scheduler = AsyncIOScheduler()
-		# self.scheduler.add_job(job, "interval", seconds=3)
+		logging.getLogger('apscheduler.executors.default').setLevel(logging.WARNING) # So it's way less spammy
 		self.scheduler.start(paused=True)
 
 	async def start(self):
