@@ -109,6 +109,10 @@ class Treepuncher(MinecraftClient):
 		)
 
 	def _register_handlers(self):
+		@self.on_disconnected()
+		async def on_disconnected():
+			self.in_game = False
+
 		@self.on_packet(PacketRespawn)
 		async def on_player_respawning(packet:PacketRespawn):
 			self.gamemode = Gamemode(packet.gamemode)
