@@ -1,7 +1,7 @@
 import re
 import logging
 
-from typing import List, Dict, Union, Optional
+from typing import List, Dict, Union, Optional, Any, Type
 from enum import Enum
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
@@ -18,11 +18,13 @@ from aiocraft.mc.proto.play.serverbound import PacketTeleportConfirm, PacketClie
 
 from .events import ChatEvent
 from .events.chat import MessageType
+from .modules.module import LogicModule
 
 REMOVE_COLOR_FORMATS = re.compile(r"§[0-9a-z]")
 
-class BotEvents(Enum):
+class TreepuncherEvents(Enum):
 	DIED = 0
+	IN_GAME = 1
 
 class Treepuncher(MinecraftClient):
 	in_game : bool
@@ -48,9 +50,12 @@ class Treepuncher(MinecraftClient):
 	# flags : int
 
 	scheduler : AsyncIOScheduler
+	modules : List[LogicModule]
+	ctx : Dict[Any, Any]
 
 	def __init__(self, *args, **kwargs):
 		super().__init__(*args, **kwargs)
+		self.ctx = dict()
 
 		self.in_game = False
 		self.gamemode = Gamemode.SURVIVAL
@@ -67,6 +72,7 @@ class Treepuncher(MinecraftClient):
 		self.position = Position(0, 0, 0)
 
 		self._register_handlers()
+		self.modules = []
 
 		self.scheduler = AsyncIOScheduler()
 		logging.getLogger('apscheduler.executors.default').setLevel(logging.WARNING) # So it's way less spammy
@@ -75,10 +81,18 @@ class Treepuncher(MinecraftClient):
 	async def start(self):
 		await super().start()
 		self.scheduler.resume()
+		for m in self.modules:
+			await m.initialize(self)
 
 	async def stop(self, force:bool=False):
 		self.scheduler.pause()
+		for m in self.modules:
+			await m.cleanup(self)
 		await super().stop(force=force)
+
+	def add(self, module:LogicModule):
+		module.register(self)
+		self.modules.append(module)
 
 	def on_chat(self, msg_type:Union[str, MessageType] = None):
 		if isinstance(msg_type, str):
@@ -93,7 +107,12 @@ class Treepuncher(MinecraftClient):
 
 	def on_death(self):
 		def wrapper(fun):
-			return self.register(BotEvents.DIED, fun)
+			return self.register(TreepuncherEvents.DIED, fun)
+		return wrapper
+
+	def on_joined_world(self):
+		def wrapper(fun):
+			return self.register(TreepuncherEvents.IN_GAME, fun)
 		return wrapper
 
 	async def write(self, packet:Packet, wait:bool=False):
@@ -146,6 +165,7 @@ class Treepuncher(MinecraftClient):
 				self.difficulty.name,
 				self.gamemode.name
 			)
+			self.run_callbacks(TreepuncherEvents.IN_GAME)
 
 		@self.on_packet(PacketPosition)
 		async def player_rubberband_cb(packet:PacketPosition):
@@ -165,12 +185,14 @@ class Treepuncher(MinecraftClient):
 				await self.dispatcher.write(
 					PacketClientCommand(self.dispatcher.proto, actionId=0) # respawn
 				)
-				self.run_callbacks(BotEvents.DIED)
+				self.run_callbacks(TreepuncherEvents.DIED)
 			self.hp = packet.health
 			self.food = packet.food
 
 		@self.on_packet(PacketExperience)
 		async def player_hp_cb(packet:PacketExperience):
+			if packet.level != self.lvl:
+				self._logger.info("Level up : %d", packet.level)
 			self.xp = packet.experienceBar
 			self.lvl = packet.level
 			self.total_xp = packet.totalExperience
