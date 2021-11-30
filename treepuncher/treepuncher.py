@@ -8,7 +8,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 from aiocraft.client import MinecraftClient
 from aiocraft.mc.packet import Packet
-from aiocraft.mc.definitions import Difficulty, Dimension, Gamemode, Position
+from aiocraft.mc.definitions import Difficulty, Dimension, Gamemode, BlockPos
 
 from aiocraft.mc.proto.play.clientbound import (
 	PacketRespawn, PacketLogin, PacketPosition, PacketUpdateHealth, PacketExperience,
@@ -41,7 +41,7 @@ class Treepuncher(MinecraftClient):
 	slot : int
 	# TODO inventory
 
-	position : Position
+	position : BlockPos
 	# TODO world
 
 	# TODO player abilities
@@ -69,7 +69,7 @@ class Treepuncher(MinecraftClient):
 
 		self.slot = 0
 
-		self.position = Position(0, 0, 0)
+		self.position = BlockPos(0, 0, 0)
 
 		self._register_handlers()
 		self.modules = []
@@ -170,7 +170,7 @@ class Treepuncher(MinecraftClient):
 		@self.on_packet(PacketPosition)
 		async def player_rubberband_cb(packet:PacketPosition):
 			self._logger.info("Position synchronized")
-			self.position = Position(packet.x, packet.y, packet.z)
+			self.position = BlockPos(packet.x, packet.y, packet.z)
 			await self.dispatcher.write(
 				PacketTeleportConfirm(
 					self.dispatcher.proto,
@@ -187,10 +187,10 @@ class Treepuncher(MinecraftClient):
 				)
 				self.run_callbacks(TreepuncherEvents.DIED)
 			self.hp = packet.health
-			self.food = packet.food
+			self.food = packet.food + packet.foodSaturation
 
 		@self.on_packet(PacketExperience)
-		async def player_hp_cb(packet:PacketExperience):
+		async def player_xp_cb(packet:PacketExperience):
 			if packet.level != self.lvl:
 				self._logger.info("Level up : %d", packet.level)
 			self.xp = packet.experienceBar
