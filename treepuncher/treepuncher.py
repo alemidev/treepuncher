@@ -1,5 +1,6 @@
 import re
 import logging
+import asyncio
 
 from typing import List, Dict, Union, Optional, Any, Type
 from enum import Enum
@@ -180,14 +181,16 @@ class Treepuncher(MinecraftClient):
 
 		@self.on_packet(PacketUpdateHealth)
 		async def player_hp_cb(packet:PacketUpdateHealth):
-			if packet.health != self.hp and packet.health <= 0:
+			died = packet.health != self.hp and packet.health <= 0
+			self.hp = packet.health
+			self.food = packet.food + packet.foodSaturation
+			if died:
+				self.run_callbacks(TreepuncherEvents.DIED)
 				self._logger.info("Dead, respawning...")
+				await asyncio.sleep(0.5)
 				await self.dispatcher.write(
 					PacketClientCommand(self.dispatcher.proto, actionId=0) # respawn
 				)
-				self.run_callbacks(TreepuncherEvents.DIED)
-			self.hp = packet.health
-			self.food = packet.food + packet.foodSaturation
 
 		@self.on_packet(PacketExperience)
 		async def player_xp_cb(packet:PacketExperience):
