@@ -172,7 +172,7 @@ class Treepuncher(MinecraftClient):
 		async def player_rubberband_cb(packet:PacketPosition):
 			self.position = BlockPos(packet.x, packet.y, packet.z)
 			self._logger.info(
-				"Position synchronized : (x:{%.0f},y:{%.0f},z:{%.0f})",
+				"Position synchronized : (x:%.0f,y:%.0f,z:%.0f)",
 				self.position.x, self.position.y, self.position.z
 			)
 			await self.dispatcher.write(
