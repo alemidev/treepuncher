@@ -80,16 +80,16 @@ class Treepuncher(MinecraftClient):
 		self.scheduler.start(paused=True)
 
 	async def start(self):
-		await super().start()
-		self.scheduler.resume()
 		for m in self.modules:
 			await m.initialize(self)
+		await super().start()
+		self.scheduler.resume()
 
 	async def stop(self, force:bool=False):
 		self.scheduler.pause()
+		await super().stop(force=force)
 		for m in self.modules:
 			await m.cleanup(self)
-		await super().stop(force=force)
 
 	def add(self, module:LogicModule):
 		module.register(self)
