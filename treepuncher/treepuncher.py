@@ -79,6 +79,14 @@ class Treepuncher(MinecraftClient):
 		logging.getLogger('apscheduler.executors.default').setLevel(logging.WARNING) # So it's way less spammy
 		self.scheduler.start(paused=True)
 
+	@property
+	def name(self) -> str:
+		if self.online_mode and self.token:
+			return self.token.profile.name
+		if not self.online_mode and self.username:
+			return self.username
+		raise ValueError("No token or username given")
+
 	async def start(self):
 		for m in self.modules:
 			await m.initialize(self)
