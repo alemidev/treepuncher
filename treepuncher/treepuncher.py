@@ -1,6 +1,7 @@
 import re
 import logging
 import asyncio
+import datetime
 
 from typing import List, Dict, Union, Optional, Any, Type
 from enum import Enum
@@ -75,7 +76,8 @@ class Treepuncher(MinecraftClient):
 		self._register_handlers()
 		self.modules = []
 
-		self.scheduler = AsyncIOScheduler()
+		tz = datetime.datetime.now(datetime.timezone.utc).astimezone().tzname() # APScheduler will complain if I don't specify a timezone...
+		self.scheduler = AsyncIOScheduler(timezone=tz)
 		logging.getLogger('apscheduler.executors.default').setLevel(logging.WARNING) # So it's way less spammy
 		self.scheduler.start(paused=True)
 
