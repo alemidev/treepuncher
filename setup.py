@@ -5,7 +5,7 @@ with open("requirements.txt") as f:
 
 setup(
 	name='treepuncher',
-	version='0.0.1',
+	version='0.0.2',
 	description='An hackable Minecraft client, built with aiocraft',
 	url='https://github.com/alemidev/treepuncher',
 	author='alemi',
