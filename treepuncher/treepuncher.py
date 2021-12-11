@@ -16,7 +16,7 @@ from aiocraft.mc.proto.play.clientbound import (
 	PacketRespawn, PacketLogin, PacketPosition, PacketUpdateHealth, PacketExperience,
 	PacketAbilities, PacketChat as PacketChatMessage
 )
-from aiocraft.mc.proto.play.serverbound import PacketTeleportConfirm, PacketClientCommand, PacketChat
+from aiocraft.mc.proto.play.serverbound import PacketTeleportConfirm, PacketClientCommand, PacketSettings, PacketChat
 
 from .events import ChatEvent
 from .events.chat import MessageType
@@ -177,6 +177,18 @@ class Treepuncher(MinecraftClient):
 				self.gamemode.name
 			)
 			self.run_callbacks(TreepuncherEvents.IN_GAME)
+			await self.write(
+				PacketSettings(
+					self.dispatcher.proto,
+					locale="en_US",
+					viewDistance=4,
+					chatFlags=0,
+					chatColors=True,
+					skinParts=0xFF,
+					mainHand=0,
+				)
+			)
+			await self.write(PacketClientCommand(self.dispatcher.proto, actionId=0))
 
 		@self.on_packet(PacketPosition)
 		async def player_rubberband_cb(packet:PacketPosition):
