@@ -13,10 +13,13 @@ from aiocraft.mc.packet import Packet
 from aiocraft.mc.definitions import Difficulty, Dimension, Gamemode, BlockPos
 
 from aiocraft.mc.proto.play.clientbound import (
-	PacketRespawn, PacketLogin, PacketPosition, PacketUpdateHealth, PacketExperience,
-	PacketAbilities, PacketChat as PacketChatMessage
+	PacketRespawn, PacketLogin, PacketPosition, PacketUpdateHealth, PacketExperience, PacketSetSlot,
+	PacketAbilities, PacketChat as PacketChatMessage, PacketHeldItemSlot as PacketHeldItemChange
 )
-from aiocraft.mc.proto.play.serverbound import PacketTeleportConfirm, PacketClientCommand, PacketSettings, PacketChat
+from aiocraft.mc.proto.play.serverbound import (
+	PacketTeleportConfirm, PacketClientCommand, PacketSettings, PacketChat,
+	PacketHeldItemSlot
+)
 
 from .events import ChatEvent
 from .events.chat import MessageType
@@ -41,6 +44,7 @@ class Treepuncher(MinecraftClient):
 	total_xp : int
 
 	slot : int
+	inventory : List[dict]
 	# TODO inventory
 
 	position : BlockPos
@@ -70,6 +74,7 @@ class Treepuncher(MinecraftClient):
 		self.lvl = 0
 
 		self.slot = 0
+		self.inventory = [ {} for _ in range(46) ]
 
 		self.position = BlockPos(0, 0, 0)
 
@@ -88,6 +93,14 @@ class Treepuncher(MinecraftClient):
 		if not self.online_mode and self.username:
 			return self.username
 		raise ValueError("No token or username given")
+
+	@property
+	def hotbar(self) -> List[dict]:
+		return self.inventory[36:45]
+
+	@property
+	def selected(self) -> dict:
+		return self.hotbar[self.slot]
 
 	async def start(self):
 		for m in self.modules:
@@ -138,10 +151,22 @@ class Treepuncher(MinecraftClient):
 			wait=wait
 		)
 
+	async def set_slot(self, slot:int):
+		await self.dispatcher.write(PacketHeldItemSlot(self.dispatcher.proto, slotId=slot))
+
 	def _register_handlers(self):
 		@self.on_disconnected()
 		async def on_disconnected():
 			self.in_game = False
+
+		@self.on_packet(PacketSetSlot)
+		async def on_set_slot(packet:PacketSetSlot):
+			if packet.windowId == 0: # player inventory
+				self.inventory[packet.slot] = packet.item
+
+		@self.on_packet(PacketHeldItemChange)
+		async def on_held_item_change(packet:PacketHeldItemChange):
+			self.slot = packet.slot
 
 		@self.on_packet(PacketRespawn)
 		async def on_player_respawning(packet:PacketRespawn):
@@ -184,7 +209,7 @@ class Treepuncher(MinecraftClient):
 					viewDistance=4,
 					chatFlags=0,
 					chatColors=True,
-					skinParts=0xFF,
+					skinParts=0xF,
 					mainHand=0,
 				)
 			)
