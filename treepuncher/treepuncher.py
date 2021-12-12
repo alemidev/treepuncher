@@ -259,6 +259,9 @@ class Treepuncher(MinecraftClient):
 		async def tablist_update(packet:PacketPlayerInfo):
 			for record in packet.data:
 				uid = record['UUID']
+				if packet.action != 0 and uid not in self.tablist:
+					self._logger.error("Received update for player %s not in tablist : %s", uid, {k:"[blob]" if k == "signature" else v for k,v in self.tablist.items()})
+					return
 				if packet.action == 0:
 					self.tablist[uid] = record
 				elif packet.action == 1:
