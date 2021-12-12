@@ -260,7 +260,7 @@ class Treepuncher(MinecraftClient):
 			for record in packet.data:
 				uid = record['UUID']
 				if packet.action != 0 and uid not in self.tablist:
-					self._logger.error("Received update for player %s not in tablist : %s", uid, {k:"[blob]" if k == "signature" else v for k,v in self.tablist.items()})
+					self._logger.error("Received update for untracked UUID : %s", uid)
 					return
 				if packet.action == 0:
 					self.tablist[uid] = record
