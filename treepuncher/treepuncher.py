@@ -14,7 +14,7 @@ from aiocraft.mc.definitions import Difficulty, Dimension, Gamemode, BlockPos
 
 from aiocraft.mc.proto.play.clientbound import (
 	PacketRespawn, PacketLogin, PacketPosition, PacketUpdateHealth, PacketExperience, PacketSetSlot,
-	PacketAbilities, PacketChat as PacketChatMessage, PacketHeldItemSlot as PacketHeldItemChange
+	PacketAbilities, PacketPlayerInfo, PacketChat as PacketChatMessage, PacketHeldItemSlot as PacketHeldItemChange
 )
 from aiocraft.mc.proto.play.serverbound import (
 	PacketTeleportConfirm, PacketClientCommand, PacketSettings, PacketChat,
@@ -49,6 +49,8 @@ class Treepuncher(MinecraftClient):
 
 	position : BlockPos
 	# TODO world
+
+	tablist : Dict[str, dict]
 
 	# TODO player abilities
 	# walk_speed : float
@@ -250,4 +252,20 @@ class Treepuncher(MinecraftClient):
 			self.xp = packet.experienceBar
 			self.lvl = packet.level
 			self.total_xp = packet.totalExperience
+
+		@self.on_packet(PacketPlayerInfo)
+		async def tablist_update(packet:PacketPlayerInfo):
+			for record in packet.data:
+				uid = record['UUID']
+				if packet.action == 0:
+					self.tablist[uid] = record
+				elif packet.action == 1:
+					self.tablist[uid]['gamemode'] = record['gamemode']
+				elif packet.action == 2:
+					self.tablist[uid]['ping'] = record['ping']
+				elif packet.action == 3:
+					self.tablist[uid]['displayName'] = record['displayName']
+				elif packet.action == 4:
+					self.tablist.pop(uid, None)
+
 
