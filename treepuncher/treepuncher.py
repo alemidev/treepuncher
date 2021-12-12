@@ -80,6 +80,8 @@ class Treepuncher(MinecraftClient):
 
 		self.position = BlockPos(0, 0, 0)
 
+		self.tablist = {}
+
 		self._register_handlers()
 		self.modules = []
 
