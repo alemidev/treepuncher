@@ -260,8 +260,7 @@ class Treepuncher(MinecraftClient):
 			for record in packet.data:
 				uid = record['UUID']
 				if packet.action != 0 and uid not in self.tablist:
-					self._logger.error("Received update for untracked UUID : %s", uid)
-					return
+					continue # TODO this happens kinda often but doesn't seem to be an issue?
 				if packet.action == 0:
 					self.tablist[uid] = record
 				elif packet.action == 1:
