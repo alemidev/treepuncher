@@ -152,6 +152,7 @@ class Treepuncher(MinecraftClient):
 		)
 
 	async def set_slot(self, slot:int):
+		self.slot = slot
 		await self.dispatcher.write(PacketHeldItemSlot(self.dispatcher.proto, slotId=slot))
 
 	def _register_handlers(self):
