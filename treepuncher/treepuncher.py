@@ -93,7 +93,7 @@ class Treepuncher(MinecraftClient):
 	@property
 	def name(self) -> str:
 		if self.online_mode and self.token:
-			return self.token.profile.name
+			return self.token.selectedProfile.name
 		if not self.online_mode and self.username:
 			return self.username
 		raise ValueError("No token or username given")
