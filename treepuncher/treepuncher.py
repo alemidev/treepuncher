@@ -2,6 +2,7 @@ import re
 import logging
 import asyncio
 import datetime
+import uuid
 
 from typing import List, Dict, Union, Optional, Any, Type
 from enum import Enum
@@ -50,7 +51,7 @@ class Treepuncher(MinecraftClient):
 	position : BlockPos
 	# TODO world
 
-	tablist : Dict[str, dict]
+	tablist : Dict[uuid.UUID, dict]
 
 	# TODO player abilities
 	# walk_speed : float
