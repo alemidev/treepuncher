@@ -23,11 +23,13 @@ class ChatEvent:
 	text : str
 	type : MessageType
 	user : str
+	target : str
 	message : str
 
 	def __init__(self, text:str):
 		self.text = REMOVE_COLOR_FORMATS.sub("", parse_chat(text))
 		self.user = ""
+		self.target = ""
 		self.message= ""
 		self.type = MessageType.SYSTEM
 		self._parse()
@@ -43,7 +45,8 @@ class ChatEvent:
 		match = WHISPER_MATCHER.search(self.text)
 		if match:
 			self.type = MessageType.WHISPER
-			self.user = match["touser"] or match["fromuser"] or match["from9b"]
+			self.user = match["fromuser"] or match["from9b"]
+			self.target = match["touser"]
 			self.message = match["txt"]
 			return
 
