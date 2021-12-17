@@ -147,7 +147,9 @@ class Treepuncher(MinecraftClient):
 	async def write(self, packet:Packet, wait:bool=False):
 		await self.dispatcher.write(packet, wait)
 
-	async def chat(self, message:str, wait:bool=False):
+	async def chat(self, message:str, whisper:str=None, wait:bool=False):
+		if whisper:
+			message = f"/w {whisper} {message}"
 		await self.dispatcher.write(
 			PacketChat(
 				self.dispatcher.proto,
