@@ -169,7 +169,7 @@ class Treepuncher(MinecraftClient):
 
 		@self.on_connected()
 		async def connected_cb():
-			self.tablist = {}
+			self.tablist.clear()
 
 		@self.on_packet(PacketSetSlot)
 		async def on_set_slot(packet:PacketSetSlot):
