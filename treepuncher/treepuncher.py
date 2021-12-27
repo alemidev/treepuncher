@@ -266,6 +266,7 @@ class Treepuncher(MinecraftClient):
 					continue # TODO this happens kinda often but doesn't seem to be an issue?
 				if packet.action == 0:
 					self.tablist[uid] = record
+					self.tablist[uid]['joinTime'] = datetime.datetime.now()
 				elif packet.action == 1:
 					self.tablist[uid]['gamemode'] = record['gamemode']
 				elif packet.action == 2:
