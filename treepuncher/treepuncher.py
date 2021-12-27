@@ -164,8 +164,12 @@ class Treepuncher(MinecraftClient):
 
 	def _register_handlers(self):
 		@self.on_disconnected()
-		async def on_disconnected():
+		async def disconnected_cb():
 			self.in_game = False
+
+		@self.on_connected()
+		async def connected_cb():
+			self.tablist = {}
 
 		@self.on_packet(PacketSetSlot)
 		async def on_set_slot(packet:PacketSetSlot):
