@@ -1,3 +1,4 @@
+import io
 import re
 import logging
 import asyncio
@@ -15,7 +16,8 @@ from aiocraft.mc.definitions import Difficulty, Dimension, Gamemode, BlockPos
 
 from aiocraft.mc.proto.play.clientbound import (
 	PacketRespawn, PacketLogin, PacketPosition, PacketUpdateHealth, PacketExperience, PacketSetSlot,
-	PacketAbilities, PacketPlayerInfo, PacketChat as PacketChatMessage, PacketHeldItemSlot as PacketHeldItemChange
+	PacketAbilities, PacketPlayerInfo, PacketMapChunk, PacketBlockChange, PacketMultiBlockChange,
+	PacketChat as PacketChatMessage, PacketHeldItemSlot as PacketHeldItemChange
 )
 from aiocraft.mc.proto.play.serverbound import (
 	PacketTeleportConfirm, PacketClientCommand, PacketSettings, PacketChat,
@@ -25,6 +27,7 @@ from aiocraft.mc.proto.play.serverbound import (
 from .events import ChatEvent
 from .events.chat import MessageType
 from .modules.module import LogicModule
+from .world.chunk import World, Chunk
 
 REMOVE_COLOR_FORMATS = re.compile(r"§[0-9a-z]")
 
@@ -49,6 +52,7 @@ class Treepuncher(MinecraftClient):
 	# TODO inventory
 
 	position : BlockPos
+	world : World
 	# TODO world
 
 	tablist : Dict[uuid.UUID, dict]
@@ -80,6 +84,7 @@ class Treepuncher(MinecraftClient):
 		self.inventory = [ {} for _ in range(46) ]
 
 		self.position = BlockPos(0, 0, 0)
+		self.world = World()
 
 		self.tablist = {}
 
@@ -279,5 +284,11 @@ class Treepuncher(MinecraftClient):
 					self.tablist[uid]['displayName'] = record['displayName']
 				elif packet.action == 4:
 					self.tablist.pop(uid, None)
+
+		@self.on_packet(PacketMapChunk)
+		async def process_chunk_packet(packet:PacketMapChunk):
+			chunk = Chunk(packet.x, packet.z, packet.bitMap)
+			chunk.read(io.BytesIO(packet.chunkData))
+			self.world.put(chunk, x=packet.x, z=packet.z)
 
 
