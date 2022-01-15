@@ -52,9 +52,7 @@ class PalettedContainer(Type):
 			raise ValueError("Bits Per Bit too high : %d", bits)
 		palette = np.empty((0,), dtype='int32')
 		palette_len = VarInt.read(buffer, ctx=ctx)
-		if bits == 0:
-			value = palette_len
-		elif bits < self.threshold:
+		if bits < self.threshold:
 			palette = np.zeros((palette_len,), dtype='int32')
 			for i in range(palette_len):
 				palette[i] = VarInt.read(buffer, ctx=ctx)
@@ -65,10 +63,8 @@ class PalettedContainer(Type):
 		for y in range(self.size):
 			for z in range(self.size):
 				for x in range(self.size):
-					val = stream.read(bits) if bits > 0 else value
-					if bits < self.threshold and bits > 0 and val > len(palette):
-						logging.warning("Expected index %d in palette of size %d", val, len(palette))
-					section[x][y][z] = palette[val] if bits < self.threshold and bits > 0 and val < len(palette) else val
+					val = stream.read(bits)
+					section[x, y, z] = palette[val] if bits < self.threshold else val
 		return section
 
 BiomeContainer = PalettedContainer(4, 4)
@@ -103,14 +99,14 @@ class OldChunkSectionType(Type):
 		for y in range(16):
 			for z in range(16):
 				for x in range(16):
-					block_light[x][y][z] = block_light_buffer.read(4)
+					block_light[x, y, z] = block_light_buffer.read(4)
 		sky_light = np.empty((16, 16, 16), dtype='int32')
 		if ctx.overworld:
 			sky_light_buffer = BitStream(buffer.read(2048), 2048*8)
 			for y in range(16):
 				for z in range(16):
 					for x in range(16):
-						sky_light[x][y][z] = sky_light_buffer.read(4)
+						sky_light[x, y, z] = sky_light_buffer.read(4)
 		return (
 			section,
 			block_light,
@@ -134,15 +130,16 @@ class Chunk(Type):
 		self.x = x
 		self.z = z
 		self.bitmask = bitmask
-		self.blocks = np.zeros((16, 256, 16))
-		self.block_light = np.zeros((16, 256, 16))
-		self.sky_light = np.zeros((16, 256, 16))
+		self.blocks = np.zeros((16, 256, 16), dtype='int32')
+		self.block_light = np.zeros((16, 256, 16), dtype='int32')
+		self.sky_light = np.zeros((16, 256, 16), dtype='int32')
 		self.ground_up_continuous = ground_up_continuous
 
 	def __getitem__(self, item:Any):
 		return self.blocks[item]
 
 	def read(self, buffer:io.BytesIO, ctx:Context):
+		logging.info("Reading chunk")
 		for i in range(16):
 			if (self.bitmask >> i) & 1:
 				section, block_light, sky_light = ChunkSection.read(buffer, ctx=ctx)
@@ -150,7 +147,7 @@ class Chunk(Type):
 				self.block_light[:, i*16 : (i+1)*16, :] = block_light
 				self.sky_light[:, i*16 : (i+1)*16, :] = sky_light
 		if self.ground_up_continuous:
-			self.biomes = buffer.read(256)
+			self.biomes = buffer.read(256) # 16x16
 		return self
 
 class World:
