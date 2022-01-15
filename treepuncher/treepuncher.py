@@ -12,6 +12,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 from aiocraft.client import MinecraftClient
 from aiocraft.mc.packet import Packet
+from aiocraft.mc.types import Context
 from aiocraft.mc.definitions import Difficulty, Dimension, Gamemode, BlockPos
 
 from aiocraft.mc.proto.play.clientbound import (
@@ -88,13 +89,14 @@ class Treepuncher(MinecraftClient):
 
 		self.tablist = {}
 
-		self._register_handlers()
 		self.modules = []
 
 		tz = datetime.datetime.now(datetime.timezone.utc).astimezone().tzname() # APScheduler will complain if I don't specify a timezone...
 		self.scheduler = AsyncIOScheduler(timezone=tz)
 		logging.getLogger('apscheduler.executors.default').setLevel(logging.WARNING) # So it's way less spammy
 		self.scheduler.start(paused=True)
+
+		self._register_handlers()
 
 	@property
 	def name(self) -> str:
@@ -287,8 +289,15 @@ class Treepuncher(MinecraftClient):
 
 		@self.on_packet(PacketMapChunk)
 		async def process_chunk_packet(packet:PacketMapChunk):
-			chunk = Chunk(packet.x, packet.z, packet.bitMap)
-			chunk.read(io.BytesIO(packet.chunkData))
+			chunk = Chunk(packet.x, packet.z, packet.bitMap, ground_up_continuous=packet.groundUp)
+			# self._logger.info("Processing chunk buffer of length %d", len(packet.chunkData))
+			chunk.read(io.BytesIO(packet.chunkData), Context(overworld=self.dimension == Dimension.OVERWORLD))
 			self.world.put(chunk, x=packet.x, z=packet.z)
+
+		@self.scheduler.scheduled_job('interval', seconds=15)
+		async def check_blocks_under_self():
+			for i in range(-5, 5):
+				block = self.world.get(self.position.x, self.position.y-i, self.position.z)
+				self._logger.info("Block %d positions below self : %d", i, block)
 
 
