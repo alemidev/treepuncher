@@ -296,8 +296,20 @@ class Treepuncher(MinecraftClient):
 
 		@self.scheduler.scheduled_job('interval', seconds=15)
 		async def check_blocks_under_self():
-			for i in range(-5, 5):
-				block = self.world.get(self.position.x, self.position.y-i, self.position.z)
-				self._logger.info("Block %d positions below self : %d", i, block)
+			block = int(self.world.get(self.position.x, self.position.y, self.position.z))
+			self._logger.info("Player block: %d:%d", block>>4, block&0xF)
+			block = int(self.world.get(self.position.x, self.position.y + 1, self.position.z))
+			self._logger.info("Player block + 1: %d:%d", block>>4, block&0xF)
+			block = int(self.world.get(self.position.x, self.position.y + 2, self.position.z))
+			self._logger.info("Player block + 2: %d:%d", block>>4, block&0xF)
+			out = ""
+			for y in range(-2, 3):
+				for z in range(-5, 6):
+					for x in range(-5, 6):
+						block = int(self.world.get(self.position.x + x, self.position.y + y, self.position.z + z))
+						out += f"{block>>4}:{block&0xF} "
+					out += "\n"
+				out += "\n\n"
+			self._logger.info(out)
 
 
