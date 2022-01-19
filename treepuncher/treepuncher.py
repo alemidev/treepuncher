@@ -38,6 +38,7 @@ class Treepuncher(MinecraftClient):
 	gamemode : Gamemode
 	dimension : Dimension
 	difficulty : Difficulty
+	join_time : datetime.datetime
 
 	hp : float
 	food : float
@@ -72,6 +73,7 @@ class Treepuncher(MinecraftClient):
 		self.gamemode = Gamemode.SURVIVAL
 		self.dimension = Dimension.OVERWORLD
 		self.difficulty = Difficulty.HARD
+		self.join_time = datetime.datetime(2011, 11, 18)
 
 		self.hp = 20.0
 		self.food = 20.0
@@ -207,6 +209,7 @@ class Treepuncher(MinecraftClient):
 			self.gamemode = Gamemode(packet.gameMode)
 			self.dimension = Dimension(packet.dimension)
 			self.difficulty = Difficulty(packet.difficulty)
+			self.join_time = datetime.datetime.now()
 			if self.difficulty != Difficulty.PEACEFUL \
 			and self.gamemode != Gamemode.SPECTATOR:
 				self.in_game = True
