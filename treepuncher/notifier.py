@@ -11,7 +11,7 @@ class Notifier:
 		return fn
 
 	def report(self) -> str:
-		return '\n'.join(fn() for fn in self._report_functions)
+		return '\n'.join(str(fn()).strip() for fn in self._report_functions)
 
 	def notify(self, text, **kwargs):
 		print(text)
