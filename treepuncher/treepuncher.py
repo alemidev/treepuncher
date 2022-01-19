@@ -138,7 +138,8 @@ class Treepuncher(MinecraftClient):
 				msg = ChatEvent(packet.message)
 				if not msg_type or msg.type == msg_type:
 					return await fun(msg)
-			return self.register(PacketChatMessage, process_chat_packet)
+			self.register(PacketChatMessage, process_chat_packet)
+			return fun
 		return wrapper
 
 	def on_death(self):
