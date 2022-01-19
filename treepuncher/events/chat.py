@@ -52,7 +52,7 @@ class ChatEvent:
 
 		match = JOIN_LEAVE_MATCHER.search(self.text)
 		if match:
-			self.type = MessageType.JOIN if match["action"] == "join" else MessageType.LEAVE
+			self.type = MessageType.JOIN if match["action"] == "joined" else MessageType.LEAVE
 			self.message = "joined" if self.type == MessageType.JOIN else "left"
 			self.user = match["usr"]
 			return
