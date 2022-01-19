@@ -11,7 +11,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 from aiocraft.client import MinecraftClient
 from aiocraft.mc.packet import Packet
-from aiocraft.mc.definitions import Difficulty, Dimension, Gamemode, BlockPos
+from aiocraft.mc.definitions import Difficulty, Dimension, Gamemode, BlockPos, Item
 
 from aiocraft.mc.proto.play.clientbound import (
 	PacketRespawn, PacketLogin, PacketPosition, PacketUpdateHealth, PacketExperience, PacketSetSlot,
@@ -22,6 +22,7 @@ from aiocraft.mc.proto.play.serverbound import (
 	PacketHeldItemSlot
 )
 
+from .notifier import Notifier
 from .events import ChatEvent
 from .events.chat import MessageType
 from .modules.module import LogicModule
@@ -45,7 +46,7 @@ class Treepuncher(MinecraftClient):
 	total_xp : int
 
 	slot : int
-	inventory : List[dict]
+	inventory : List[Item]
 	# TODO inventory
 
 	position : BlockPos
@@ -58,11 +59,12 @@ class Treepuncher(MinecraftClient):
 	# fly_speed : float
 	# flags : int
 
+	notifier : Notifier
 	scheduler : AsyncIOScheduler
 	modules : List[LogicModule]
 	ctx : Dict[Any, Any]
 
-	def __init__(self, *args, **kwargs):
+	def __init__(self, *args, notifier:Notifier=None, **kwargs):
 		super().__init__(*args, **kwargs)
 		self.ctx = dict()
 
@@ -77,7 +79,7 @@ class Treepuncher(MinecraftClient):
 		self.lvl = 0
 
 		self.slot = 0
-		self.inventory = [ {} for _ in range(46) ]
+		self.inventory = [ Item() for _ in range(46) ]
 
 		self.position = BlockPos(0, 0, 0)
 
@@ -86,6 +88,7 @@ class Treepuncher(MinecraftClient):
 		self._register_handlers()
 		self.modules = []
 
+		self.notifier = notifier or Notifier()
 		tz = datetime.datetime.now(datetime.timezone.utc).astimezone().tzname() # APScheduler will complain if I don't specify a timezone...
 		self.scheduler = AsyncIOScheduler(timezone=tz)
 		logging.getLogger('apscheduler.executors.default').setLevel(logging.WARNING) # So it's way less spammy
@@ -100,14 +103,15 @@ class Treepuncher(MinecraftClient):
 		raise ValueError("No token or username given")
 
 	@property
-	def hotbar(self) -> List[dict]:
+	def hotbar(self) -> List[Item]:
 		return self.inventory[36:45]
 
 	@property
-	def selected(self) -> dict:
+	def selected(self) -> Item:
 		return self.hotbar[self.slot]
 
 	async def start(self):
+		await self.notifier.initialize(self)
 		for m in self.modules:
 			await m.initialize(self)
 		await super().start()
@@ -118,6 +122,7 @@ class Treepuncher(MinecraftClient):
 		await super().stop(force=force)
 		for m in self.modules:
 			await m.cleanup(self)
+		await self.notifier.cleanup(self)
 
 	def add(self, module:LogicModule):
 		module.register(self)
