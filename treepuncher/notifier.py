@@ -13,7 +13,7 @@ class Notifier:
 	def report(self) -> str:
 		return '\n'.join(str(fn()).strip() for fn in self._report_functions)
 
-	def notify(self, text, critical:bool = False, **kwargs):
+	def notify(self, text, log:bool = False, **kwargs):
 		print(text)
 
 	async def initialize(self, _client:'Treepuncher'):
