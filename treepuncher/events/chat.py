@@ -5,6 +5,8 @@ from enum import Enum
 
 from aiocraft.util.helpers import parse_chat
 
+from .base import BaseEvent
+
 CHAT_MESSAGE_MATCHER = re.compile(r"<(?P<usr>[A-Za-z0-9_]+)> (?P<msg>.+)")
 REMOVE_COLOR_FORMATS = re.compile(r"§[0-9a-z]")
 WHISPER_MATCHER = re.compile(r"(?:to (?P<touser>[A-Za-z0-9_]+)( |):|(?P<fromuser>[A-Za-z0-9_]+) whispers( |):|from (?P<from9b>[A-Za-z0-9_]+):) (?P<txt>.+)", flags=re.IGNORECASE)
@@ -19,7 +21,7 @@ class MessageType(Enum):
 	LEAVE = "leave"
 	SYSTEM = "system"
 
-class ChatEvent:
+class ChatEvent(BaseEvent):
 	text : str
 	type : MessageType
 	user : str

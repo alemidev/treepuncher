@@ -4,113 +4,108 @@ import asyncio
 import datetime
 import uuid
 
-from typing import List, Dict, Union, Optional, Any, Type
+from typing import List, Dict, Tuple, Union, Optional, Any, Type, get_type_hints
 from enum import Enum
+from dataclasses import dataclass
+from configparser import ConfigParser
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 from aiocraft.client import MinecraftClient
 from aiocraft.mc.packet import Packet
-from aiocraft.mc.definitions import Difficulty, Dimension, Gamemode, BlockPos, Item
 
-from aiocraft.mc.proto.play.clientbound import (
-	PacketRespawn, PacketLogin, PacketPosition, PacketUpdateHealth, PacketExperience, PacketSetSlot,
-	PacketAbilities, PacketPlayerInfo, PacketChat as PacketChatMessage, PacketHeldItemSlot as PacketHeldItemChange
-)
-from aiocraft.mc.proto.play.serverbound import (
-	PacketTeleportConfirm, PacketClientCommand, PacketSettings, PacketChat,
-	PacketHeldItemSlot
-)
-
+from .storage import Storage
 from .notifier import Notifier
-from .events import ChatEvent
-from .events.chat import MessageType
-from .modules.module import LogicModule
+from .game import GameState, GameChat, GameInventory, GameTablist, GameWorld
 
 REMOVE_COLOR_FORMATS = re.compile(r"§[0-9a-z]")
 
-class TreepuncherEvents(Enum):
-	DIED = 0
-	IN_GAME = 1
+class ConfigObject:
+	def __getitem__(self, key:str) -> Any:
+		return getattr(self, key)
 
-class Treepuncher(MinecraftClient):
-	in_game : bool
-	gamemode : Gamemode
-	dimension : Dimension
-	difficulty : Difficulty
-	join_time : datetime.datetime
+class Addon:
+	name : str
+	config : ConfigObject
+	_client : 'Treepuncher'
 
-	hp : float
-	food : float
-	xp : float
-	lvl : int
-	total_xp : int
+	@dataclass(frozen=True)
+	class Options(ConfigObject):
+		pass
 
-	slot : int
-	inventory : List[Item]
-	# TODO inventory
+	@property
+	def client(self) -> 'Treepuncher':
+		return self._client
 
-	position : BlockPos
-	# TODO world
+	def __init__(self, client:'Treepuncher'):
+		self._client = client
+		self.name = type(self).__name__
+		cfg = self._client.config
+		kwargs : Dict[str, Any] = {}
+		for name, clazz in get_type_hints(self.Options).items():
+			default = getattr(self.Options, name, None)
+			if cfg.has_option(self.name, name):
+				if clazz is bool:
+					kwargs[name] = self._client.config[self.name].getboolean(name)
+				else:
+					kwargs[name] = clazz(self._client.config[self.name].get(name))
+			elif default is None:
+				raise ValueError(f"Missing required value '{name}' of type '{clazz.__name__}' in section '{self.name}'")
+			else: # not really necessary since it's a dataclass but whatever
+				kwargs[name] = default
+		self.config = self.Options(**kwargs)
 
-	tablist : Dict[uuid.UUID, dict]
+	async def initialize(self):
+		pass
 
-	# TODO player abilities
-	# walk_speed : float
-	# fly_speed : float
-	# flags : int
+	async def cleanup(self):
+		pass
+
+class Treepuncher(
+		GameState,
+		GameChat,
+		GameInventory,
+		GameTablist,
+		GameWorld
+):
+	name : str
+	config : ConfigParser
+	storage : Storage
 
 	notifier : Notifier
 	scheduler : AsyncIOScheduler
-	modules : List[LogicModule]
+	modules : List[Addon]
 	ctx : Dict[Any, Any]
 
-	def __init__(self, *args, notifier:Notifier=None, **kwargs):
+	def __init__(self, name:str, *args, config_file:str=None, **kwargs):
 		super().__init__(*args, **kwargs)
 		self.ctx = dict()
 
-		self.in_game = False
-		self.gamemode = Gamemode.SURVIVAL
-		self.dimension = Dimension.OVERWORLD
-		self.difficulty = Difficulty.HARD
-		self.join_time = datetime.datetime(2011, 11, 18)
+		self.name = name
+		self.config = ConfigParser()
+		config_path = config_file or f'config-{self.name}.ini'
+		self.config.read(config_path)
 
-		self.hp = 20.0
-		self.food = 20.0
-		self.xp = 0.0
-		self.lvl = 0
+		self.storage = Storage(self.name)
 
-		self.slot = 0
-		self.inventory = [ Item() for _ in range(46) ]
-
-		self.position = BlockPos(0, 0, 0)
-
-		self.tablist = {}
-
-		self._register_handlers()
 		self.modules = []
 
-		self.notifier = notifier or Notifier()
+		# self.notifier = notifier or Notifier()
 		tz = datetime.datetime.now(datetime.timezone.utc).astimezone().tzname() # APScheduler will complain if I don't specify a timezone...
 		self.scheduler = AsyncIOScheduler(timezone=tz)
 		logging.getLogger('apscheduler.executors.default').setLevel(logging.WARNING) # So it's way less spammy
 		self.scheduler.start(paused=True)
 
 	@property
-	def name(self) -> str:
-		if self.online_mode and self.token:
-			return self.token.selectedProfile.name
-		if not self.online_mode and self.username:
-			return self.username
-		raise ValueError("No token or username given")
-
-	@property
-	def hotbar(self) -> List[Item]:
-		return self.inventory[36:45]
-
-	@property
-	def selected(self) -> Item:
-		return self.hotbar[self.slot]
+	def playerName(self) -> str:
+		if self.online_mode:
+			if self._authenticator and self._authenticator.selectedProfile:
+				return self._authenticator.selectedProfile.name
+			raise ValueError("Username unknown: client not authenticated")
+		else:
+			if self._username:
+				return self._username
+			raise ValueError("No username configured for offline mode")
 
 	async def start(self):
 		await self.notifier.initialize(self)
@@ -123,170 +118,13 @@ class Treepuncher(MinecraftClient):
 		self.scheduler.pause()
 		await super().stop(force=force)
 		for m in self.modules:
-			await m.cleanup(self)
+			await m.cleanup()
 		await self.notifier.cleanup(self)
 
-	def add(self, module:LogicModule):
-		module.register(self)
-		self.modules.append(module)
-
-	def on_chat(self, msg_type:Union[str, MessageType] = None):
-		if isinstance(msg_type, str):
-			msg_type = MessageType(msg_type)
-		def wrapper(fun):
-			async def process_chat_packet(packet:PacketChatMessage):
-				msg = ChatEvent(packet.message)
-				if not msg_type or msg.type == msg_type:
-					return await fun(msg)
-			self.register(PacketChatMessage, process_chat_packet)
-			return fun
-		return wrapper
-
-	def on_death(self):
-		def wrapper(fun):
-			return self.register(TreepuncherEvents.DIED, fun)
-		return wrapper
-
-	def on_joined_world(self):
-		def wrapper(fun):
-			return self.register(TreepuncherEvents.IN_GAME, fun)
-		return wrapper
+	def install(self, module:Type[Addon]) -> Type[Addon]:
+		self.modules.append(module(self))
+		return module
 
 	async def write(self, packet:Packet, wait:bool=False):
 		await self.dispatcher.write(packet, wait)
-
-	async def chat(self, message:str, whisper:str=None, wait:bool=False):
-		if whisper:
-			message = f"/w {whisper} {message}"
-		await self.dispatcher.write(
-			PacketChat(
-				self.dispatcher.proto,
-				message=message
-			),
-			wait=wait
-		)
-
-	async def set_slot(self, slot:int):
-		self.slot = slot
-		await self.dispatcher.write(PacketHeldItemSlot(self.dispatcher.proto, slotId=slot))
-
-	def _register_handlers(self):
-		@self.on_disconnected()
-		async def disconnected_cb():
-			self.in_game = False
-
-		@self.on_connected()
-		async def connected_cb():
-			self.tablist.clear()
-
-		@self.on_packet(PacketSetSlot)
-		async def on_set_slot(packet:PacketSetSlot):
-			if packet.windowId == 0: # player inventory
-				self.inventory[packet.slot] = packet.item
-
-		@self.on_packet(PacketHeldItemChange)
-		async def on_held_item_change(packet:PacketHeldItemChange):
-			self.slot = packet.slot
-
-		@self.on_packet(PacketRespawn)
-		async def on_player_respawning(packet:PacketRespawn):
-			self.gamemode = Gamemode(packet.gamemode)
-			self.dimension = Dimension(packet.dimension)
-			self.difficulty = Difficulty(packet.difficulty)
-			if self.difficulty != Difficulty.PEACEFUL \
-			and self.gamemode != Gamemode.SPECTATOR:
-				self.in_game = True
-			else:
-				self.in_game = False
-			self._logger.info(
-				"Reloading world: %s (%s) in %s",
-				self.dimension.name,
-				self.difficulty.name,
-				self.gamemode.name
-			)
-
-		@self.on_packet(PacketLogin)
-		async def player_joining_cb(packet:PacketLogin):
-			self.gamemode = Gamemode(packet.gameMode)
-			self.dimension = Dimension(packet.dimension)
-			self.difficulty = Difficulty(packet.difficulty)
-			self.join_time = datetime.datetime.now()
-			if self.difficulty != Difficulty.PEACEFUL \
-			and self.gamemode != Gamemode.SPECTATOR:
-				self.in_game = True
-			else:
-				self.in_game = False
-			self._logger.info(
-				"Joined world: %s (%s) in %s",
-				self.dimension.name,
-				self.difficulty.name,
-				self.gamemode.name
-			)
-			self.run_callbacks(TreepuncherEvents.IN_GAME)
-			await self.write(
-				PacketSettings(
-					self.dispatcher.proto,
-					locale="en_US",
-					viewDistance=4,
-					chatFlags=0,
-					chatColors=True,
-					skinParts=0xF,
-					mainHand=0,
-				)
-			)
-			await self.write(PacketClientCommand(self.dispatcher.proto, actionId=0))
-
-		@self.on_packet(PacketPosition)
-		async def player_rubberband_cb(packet:PacketPosition):
-			self.position = BlockPos(packet.x, packet.y, packet.z)
-			self._logger.info(
-				"Position synchronized : (x:%.0f,y:%.0f,z:%.0f)",
-				self.position.x, self.position.y, self.position.z
-			)
-			await self.dispatcher.write(
-				PacketTeleportConfirm(
-					self.dispatcher.proto,
-					teleportId=packet.teleportId
-				)
-			)
-
-		@self.on_packet(PacketUpdateHealth)
-		async def player_hp_cb(packet:PacketUpdateHealth):
-			died = packet.health != self.hp and packet.health <= 0
-			self.hp = packet.health
-			self.food = packet.food + packet.foodSaturation
-			if died:
-				self.run_callbacks(TreepuncherEvents.DIED)
-				self._logger.info("Dead, respawning...")
-				await asyncio.sleep(0.5)
-				await self.dispatcher.write(
-					PacketClientCommand(self.dispatcher.proto, actionId=0) # respawn
-				)
-
-		@self.on_packet(PacketExperience)
-		async def player_xp_cb(packet:PacketExperience):
-			if packet.level != self.lvl:
-				self._logger.info("Level up : %d", packet.level)
-			self.xp = packet.experienceBar
-			self.lvl = packet.level
-			self.total_xp = packet.totalExperience
-
-		@self.on_packet(PacketPlayerInfo)
-		async def tablist_update(packet:PacketPlayerInfo):
-			for record in packet.data:
-				uid = record['UUID']
-				if packet.action != 0 and uid not in self.tablist:
-					continue # TODO this happens kinda often but doesn't seem to be an issue?
-				if packet.action == 0:
-					self.tablist[uid] = record
-					self.tablist[uid]['joinTime'] = datetime.datetime.now()
-				elif packet.action == 1:
-					self.tablist[uid]['gamemode'] = record['gamemode']
-				elif packet.action == 2:
-					self.tablist[uid]['ping'] = record['ping']
-				elif packet.action == 3:
-					self.tablist[uid]['displayName'] = record['displayName']
-				elif packet.action == 4:
-					self.tablist.pop(uid, None)
-
 
