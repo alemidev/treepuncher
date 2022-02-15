@@ -18,7 +18,7 @@ from .helpers import configure_logging
 def main():
 	root = Path(os.getcwd())
 	# TODO would be cool if it was possible to configure addons path, but we need to load addons before doing argparse so we can do helptext
-	# addon_path = Path(args.addon_path) if args.addon_path else ( root/'addons' )
+	# addon_path = Path(args.path) if args.addon_path else ( root/'addons' )
 	addon_path = root/'addons'
 	addons : List[Type[Addon]] = []
 
@@ -30,11 +30,14 @@ def main():
 				addons.append(obj)
 
 	class ChatLogger(Addon):
-		"""This addon will print (optionally colored) game chat to terminal"""
+		"""print (optionally colored) game chat to terminal"""
 		REMOVE_COLOR_FORMATS = re.compile(r"§[0-9a-z]")
 		@dataclass
 		class Options(ConfigObject):
+			test : str
+			something : int
 			color : bool = True
+			blah : str = 'porcodio'
 
 		def __init__(self, *args, **kwargs):
 			super().__init__(*args, **kwargs)
@@ -45,9 +48,10 @@ def main():
 	addons.append(ChatLogger)
 
 	class ChatInput(Addon):
+		"""read input from stdin and send to game chat"""
 		task : asyncio.Task
 		running : bool
-	
+
 		def __init__(self, *args, **kwargs):
 			super().__init__(*args, **kwargs)
 			self.task = None
@@ -74,8 +78,8 @@ def main():
 
 	help_text = '\n\naddons:\n' + str.join( # TODO do this iteratively to make it readable!
 		'\n', (
-			f"  {addon.__name__}: {addon.__doc__ or '-no description-'}\n    " + str.join('\n    ',
-				(f"- {name} ({clazz.__name__}) {'[!]' if not hasattr(addon.Options, name) else ''}" for (name, clazz) in get_type_hints(addon.Options).items())
+			f"  {addon.__name__}\t\t{addon.__doc__ or '-no description-'}\n    " + str.join('\n    ',
+				(f"* {name} ({clazz.__name__}) {'[required]' if not hasattr(addon.Options, name) else ''}" for (name, clazz) in get_type_hints(addon.Options).items())
 			) for addon in addons
 		)
 	)
@@ -89,10 +93,10 @@ def main():
 
 	parser.add_argument('name', help='name to use for this client session')
 	parser.add_argument('server', help='server to connect to')
-	parser.add_argument('--ms-client-id', dest='client_id', default='c63ef189-23cb-453b-8060-13800b85d2dc', help='Azure application client_id')
-	parser.add_argument('--ms-client-secret', dest='client_secret', default='N2e7Q~ybYA0IO39KB1mFD4GmoYzISRaRNyi59', help='Azure application client_secret')
-	parser.add_argument('--ms-redirect-uri', dest='redirect_uri', default='https://fantabos.co/msauth', help='Azure application redirect_uri')
-	parser.add_argument('--addon-path', dest='addon-path', default='', help='Path for loading addons')
+	parser.add_argument('--client-id', dest='cid', default='c63ef189-23cb-453b-8060-13800b85d2dc', help='client_id of your Azure application')
+	parser.add_argument('--secret', dest='secret', default='N2e7Q~ybYA0IO39KB1mFD4GmoYzISRaRNyi59', help='client_secret of your Azure application')
+	parser.add_argument('--redirect-uri', dest='uri', default='https://fantabos.co/msauth', help='redirect_uri of your Azure application')
+	parser.add_argument('--addon-path', dest='path', default='', help='path for loading addons')
 	parser.add_argument('--chat-log', dest='chat_log', action='store_const', const=True, default=False, help="print (colored) chat to terminal")
 	parser.add_argument('--chat-input', dest='chat_input', action='store_const', const=True, default=False, help="read input from stdin and send it to chat")
 	parser.add_argument('--debug', dest='_debug', action='store_const', const=True, default=False, help="enable debug logs")
@@ -103,16 +107,16 @@ def main():
 	configure_logging(args.name, level=logging.DEBUG if args._debug else logging.INFO)
 	setproctitle(f"treepuncher[{args.name}]")
 
-	code = input(f"-> Go to 'https://fantabos.co/msauth?client_id={args.client_id}&state=hardcoded', click 'Auth' and login, then copy here the code you received\n--> ")
+	code = input(f"-> Go to 'https://fantabos.co/msauth?client_id={args.cid}&state=hardcoded', click 'Auth' and login, then copy here the code you received\n--> ")
 
 	client = Treepuncher(
 		args.name,
 		args.server,
 		use_packet_whitelist=use_packet_whitelist,
 		notifier=notifier,
-		client_id=args.client_id,
-		client_secret=args.client_secret,
-		redirect_uri="https://fantabos.co/msauth"
+		client_id=args.cid,
+		client_secret=args.secret,
+		redirect_uri=args.uri
 	)
 
 	for addon in addons:
