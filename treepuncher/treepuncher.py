@@ -1,4 +1,5 @@
 import re
+import json
 import logging
 import asyncio
 import datetime
@@ -14,7 +15,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from aiocraft.client import MinecraftClient
 from aiocraft.mc.packet import Packet
 
-from .storage import Storage
+from .storage import Storage, SystemState
 from .notifier import Notifier
 from .game import GameState, GameChat, GameInventory, GameTablist, GameWorld
 
@@ -26,34 +27,38 @@ class ConfigObject:
 
 class Addon:
 	name : str
-	config : ConfigObject
 	_client : 'Treepuncher'
 
 	@dataclass(frozen=True)
 	class Options(ConfigObject):
 		pass
+	config : Options
 
 	@property
 	def client(self) -> 'Treepuncher':
 		return self._client
 
-	def __init__(self, client:'Treepuncher'):
+	def __init__(self, client:'Treepuncher', *args, **kwargs):
 		self._client = client
 		self.name = type(self).__name__
 		cfg = self._client.config
-		kwargs : Dict[str, Any] = {}
+		opts : Dict[str, Any] = {}
 		for name, clazz in get_type_hints(self.Options).items():
 			default = getattr(self.Options, name, None)
 			if cfg.has_option(self.name, name):
 				if clazz is bool:
-					kwargs[name] = self._client.config[self.name].getboolean(name)
+					opts[name] = self._client.config[self.name].getboolean(name)
 				else:
-					kwargs[name] = clazz(self._client.config[self.name].get(name))
+					opts[name] = clazz(self._client.config[self.name].get(name))
 			elif default is None:
 				raise ValueError(f"Missing required value '{name}' of type '{clazz.__name__}' in section '{self.name}'")
 			else: # not really necessary since it's a dataclass but whatever
-				kwargs[name] = default
-		self.config = self.Options(**kwargs)
+				opts[name] = default
+		self.config = self.Options(**opts)
+		self.register(client)
+
+	def register(self, client:'Treepuncher'):
+		pass
 
 	async def initialize(self):
 		pass
@@ -87,6 +92,11 @@ class Treepuncher(
 		self.config.read(config_path)
 
 		self.storage = Storage(self.name)
+		prev = self.storage.system() # if this isn't 1st time, this won't be None. Load token from there
+		if prev:
+			if self.name != prev.name:
+				self._logger.warning("Saved token session name differs from current")
+			self._authenticator.deserialize(json.loads(prev.token))
 
 		self.modules = []
 
@@ -106,6 +116,15 @@ class Treepuncher(
 			if self._username:
 				return self._username
 			raise ValueError("No username configured for offline mode")
+
+	async def authenticate(self):
+		await super().authenticate()
+		state = SystemState(
+			name=self.name,
+			token=json.dumps(self._authenticator.serialize()),
+			start_time=int(time())
+		)
+		self.storage._set_state(state)
 
 	async def start(self):
 		await self.notifier.initialize(self)

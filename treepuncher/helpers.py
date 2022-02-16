@@ -39,9 +39,9 @@ def configure_logging(name:str, level=logging.INFO, color:bool = True):
 	file_formatter = logging.Formatter("[%(asctime)s] [%(name)s] [%(levelname)s] %(message)s", "%b %d %Y %H:%M:%S")
 	print_formatter : logging.Formatter
 	if color:
-		print_formatter = ColorFormatter("├🮥 %(message)s")
+		print_formatter = ColorFormatter("> %(message)s")
 	else:
-		print_formatter = logging.Formatter("├🮥 %(message)s")
+		print_formatter = logging.Formatter("> %(message)s")
 	fh.setFormatter(file_formatter)
 	ch.setFormatter(print_formatter)
 	# add the handlers to the logger

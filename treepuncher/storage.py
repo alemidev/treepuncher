@@ -36,11 +36,11 @@ class Storage:
 		cur.execute('INSERT INTO system VALUES (?, ?, ?)', (state.name, state.token, state.start_time))
 		self.db.commit()
 
-	def system(self) -> SystemState:
+	def system(self) -> Optional[SystemState]:
 		cur = self.db.cursor()
 		val = cur.execute('SELECT * FROM system').fetchall()
 		if not val:
-			raise ValueError("No system state set")
+			return None
 		return SystemState(
 			name=val[0][0],
 			token=val[0][1],
