@@ -7,7 +7,8 @@ import uuid
 
 from typing import List, Dict, Tuple, Union, Optional, Any, Type, get_type_hints
 from enum import Enum
-from dataclasses import dataclass
+from time import time
+from dataclasses import dataclass, MISSING
 from configparser import ConfigParser
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
@@ -27,12 +28,12 @@ class ConfigObject:
 
 class Addon:
 	name : str
+	config : ConfigObject
 	_client : 'Treepuncher'
 
 	@dataclass(frozen=True)
 	class Options(ConfigObject):
 		pass
-	config : Options
 
 	@property
 	def client(self) -> 'Treepuncher':
@@ -43,21 +44,25 @@ class Addon:
 		self.name = type(self).__name__
 		cfg = self._client.config
 		opts : Dict[str, Any] = {}
-		for name, clazz in get_type_hints(self.Options).items():
-			default = getattr(self.Options, name, None)
-			if cfg.has_option(self.name, name):
-				if clazz is bool:
-					opts[name] = self._client.config[self.name].getboolean(name)
-				else:
-					opts[name] = clazz(self._client.config[self.name].get(name))
-			elif default is None:
-				raise ValueError(f"Missing required value '{name}' of type '{clazz.__name__}' in section '{self.name}'")
-			else: # not really necessary since it's a dataclass but whatever
-				opts[name] = default
+		cfg_clazz = get_type_hints(type(self))['config']
+		if cfg_clazz is not ConfigObject:
+			for name, field in cfg_clazz.__dataclass_fields__.items():
+				default = field.default if field.default is not MISSING \
+					else field.default_factory() if field.default_factory is not MISSING \
+					else MISSING
+				if cfg.has_option(self.name, name):
+					if field.type is bool:
+						opts[name] = self._client.config[self.name].getboolean(name)
+					else:
+						opts[name] = field.type(self._client.config[self.name].get(name))
+				elif default is MISSING:
+					raise ValueError(f"Missing required value '{name}' of type '{field.type.__name__}' in section '{self.name}'")
+				else: # not really necessary since it's a dataclass but whatever
+					opts[name] = default
 		self.config = self.Options(**opts)
-		self.register(client)
+		self.register()
 
-	def register(self, client:'Treepuncher'):
+	def register(self):
 		pass
 
 	async def initialize(self):
@@ -82,25 +87,26 @@ class Treepuncher(
 	modules : List[Addon]
 	ctx : Dict[Any, Any]
 
-	def __init__(self, name:str, *args, config_file:str=None, **kwargs):
+	def __init__(self, name:str, *args, config_file:str=None, notifier:Notifier=None, **kwargs):
 		super().__init__(*args, **kwargs)
 		self.ctx = dict()
 
 		self.name = name
 		self.config = ConfigParser()
-		config_path = config_file or f'config-{self.name}.ini'
+		config_path = config_file or f'{self.name}.ini'
 		self.config.read(config_path)
 
 		self.storage = Storage(self.name)
 		prev = self.storage.system() # if this isn't 1st time, this won't be None. Load token from there
 		if prev:
 			if self.name != prev.name:
-				self._logger.warning("Saved token session name differs from current")
+				self._logger.warning("Saved credentials are not from this session")
 			self._authenticator.deserialize(json.loads(prev.token))
+			self._logger.info("Loaded credentials")
 
 		self.modules = []
 
-		# self.notifier = notifier or Notifier()
+		self.notifier = notifier or Notifier()
 		tz = datetime.datetime.now(datetime.timezone.utc).astimezone().tzname() # APScheduler will complain if I don't specify a timezone...
 		self.scheduler = AsyncIOScheduler(timezone=tz)
 		logging.getLogger('apscheduler.executors.default').setLevel(logging.WARNING) # So it's way less spammy
@@ -127,9 +133,9 @@ class Treepuncher(
 		self.storage._set_state(state)
 
 	async def start(self):
-		await self.notifier.initialize(self)
+		await self.notifier.initialize()
 		for m in self.modules:
-			await m.initialize(self)
+			await m.initialize()
 		await super().start()
 		self.scheduler.resume()
 
@@ -138,12 +144,8 @@ class Treepuncher(
 		await super().stop(force=force)
 		for m in self.modules:
 			await m.cleanup()
-		await self.notifier.cleanup(self)
+		await self.notifier.cleanup()
 
 	def install(self, module:Type[Addon]) -> Type[Addon]:
 		self.modules.append(module(self))
 		return module
-
-	async def write(self, packet:Packet, wait:bool=False):
-		await self.dispatcher.write(packet, wait)
-

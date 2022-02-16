@@ -36,6 +36,8 @@ def main():
 	for addon in addons:
 		help_text += f"\n  {addon.__name__} \t{addon.__doc__ or ''}"
 		cfg_clazz = get_type_hints(addon)['config']
+		if cfg_clazz is ConfigObject:
+			continue # it's the superclass type hint
 		for name, field in cfg_clazz.__dataclass_fields__.items():
 			default = field.default if field.default is not MISSING \
 				else field.default_factory() if field.default_factory is not MISSING \
@@ -61,6 +63,8 @@ def main():
 	parser.add_argument('--chat-input', dest='chat_input', action='store_const', const=True, default=False, help="read input from stdin and send it to chat")
 	parser.add_argument('--debug', dest='_debug', action='store_const', const=True, default=False, help="enable debug logs")
 	parser.add_argument('--no-packet-filter', dest='use_packet_whitelist', action='store_const', const=False, default=True, help="disable packet whitelist, will decrease performance")
+	parser.add_argument('--addons', dest='add', nargs='+', type=str, default=[a.__name__ for a in addons], help='specify addons to enable, defaults to all')
+	# TODO find a better way to specify which addons are enabled
 
 	args = parser.parse_args()
 
@@ -74,15 +78,18 @@ def main():
 	client = Treepuncher(
 		args.name,
 		args.server,
-		use_packet_whitelist=use_packet_whitelist,
+		use_packet_whitelist=args.use_packet_whitelist,
 		login_code=code,
 		client_id=args.cid,
 		client_secret=args.secret,
 		redirect_uri=args.uri
 	)
 
+	enabled_addons = set(a.lower() for a in args.add)
 	for addon in addons:
-		client.install(addon)
+		if addon.__name__.lower() in enabled_addons:
+			logging.info("Installing '%s'", addon.__name__)
+			client.install(addon)
 
 	client.run()
 

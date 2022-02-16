@@ -1,3 +1,4 @@
+import os
 import json
 import sqlite3
 
@@ -16,7 +17,10 @@ class Storage:
 
 	def __init__(self, name:str):
 		self.name = name
+		init = not os.path.isfile(f"{name}.session")
 		self.db = sqlite3.connect(f'{name}.session')
+		if init:
+			self._init_db()
 
 	def __del__(self):
 		self.close()

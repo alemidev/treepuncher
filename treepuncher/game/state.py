@@ -1,5 +1,6 @@
 import asyncio
 import datetime
+import functools
 
 from aiocraft.client import MinecraftClient
 from aiocraft.mc.definitions import Gamemode, Dimension, Difficulty
@@ -27,20 +28,20 @@ class GameState(MinecraftClient):
 
 	def on_death(self):
 		def decorator(fun):
-			@functool.wraps(fun)
+			@functools.wraps(fun)
 			async def wrapper():
 				event = DeathEvent()
 				return await fun(event)
-			return self.register(DeathEvent.SENTINEL, fun)
+			return self.register(DeathEvent.SENTINEL, wrapper)
 		return decorator
 
 	def on_joined_world(self):
 		def decorator(fun):
-			@functool.wraps(fun)
+			@functools.wraps(fun)
 			async def wrapper():
 				event = JoinGameEvent()
 				return await fun(event)
-			return self.register(JoinGameEvent.SENTINEL, callback)
+			return self.register(JoinGameEvent.SENTINEL, wrapper)
 		return decorator
 
 	def __init__(self, *args, **kwargs):

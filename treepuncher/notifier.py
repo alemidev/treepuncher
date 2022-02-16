@@ -1,6 +1,6 @@
 from typing import Callable, List
 
-class Notifier:
+class Notifier: # TODO this should be an Addon too!
 	_report_functions : List[Callable]
 
 	def __init__(self):
@@ -16,9 +16,9 @@ class Notifier:
 	def notify(self, text, log:bool = False, **kwargs):
 		print(text)
 
-	async def initialize(self, _client:'Treepuncher'):
+	async def initialize(self):
 		pass
 
-	async def cleanup(self, _client:'Treepuncher'):
+	async def cleanup(self):
 		pass
 
