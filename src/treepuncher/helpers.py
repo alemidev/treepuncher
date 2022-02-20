@@ -8,9 +8,6 @@ def configure_logging(name:str, level=logging.INFO, color:bool = True):
 	import os
 	from logging.handlers import RotatingFileHandler
 
-	if not os.path.isdir("debug"):
-		os.mkdir("debug")
-
 	class ColorFormatter(logging.Formatter):
 		def __init__(self, fmt:str):
 			self.fmt : str = fmt
@@ -37,11 +34,7 @@ def configure_logging(name:str, level=logging.INFO, color:bool = True):
 	ch.setLevel(logging.DEBUG)
 	# create formatter and add it to the handlers
 	file_formatter = logging.Formatter("[%(asctime)s] [%(name)s] [%(levelname)s] %(message)s", "%b %d %Y %H:%M:%S")
-	print_formatter : logging.Formatter
-	if color:
-		print_formatter = ColorFormatter("> %(message)s")
-	else:
-		print_formatter = logging.Formatter("> %(message)s")
+	print_formatter = ColorFormatter("> %(message)s") if color else logging.Formatter("> %(message)s")
 	fh.setFormatter(file_formatter)
 	ch.setFormatter(print_formatter)
 	# add the handlers to the logger
