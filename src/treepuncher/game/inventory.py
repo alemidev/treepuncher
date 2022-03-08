@@ -1,11 +1,12 @@
 from typing import List
 
-from aiocraft.client import MinecraftClient
 from aiocraft.mc.definitions import Item
 from aiocraft.mc.proto.play.clientbound import PacketSetSlot, PacketHeldItemSlot as PacketHeldItemChange
 from aiocraft.mc.proto.play.serverbound import PacketHeldItemSlot
 
-class GameInventory(MinecraftClient):
+from ..scaffold import Scaffold
+
+class GameInventory(Scaffold):
 	slot : int
 	inventory : List[Item]
 	# TODO inventory

@@ -3,11 +3,13 @@ import datetime
 
 from typing import Dict, List
 
-from aiocraft.client import MinecraftClient
 from aiocraft.mc.definitions import BlockPos
 from aiocraft.mc.proto import PacketPosition, PacketTeleportConfirm
 
-class GameWorld(MinecraftClient):
+from ..scaffold import Scaffold
+from ..events import ConnectedEvent
+
+class GameWorld(Scaffold):
 	position : BlockPos
 	# TODO world
 
@@ -16,8 +18,8 @@ class GameWorld(MinecraftClient):
 
 		self.position = BlockPos(0, 0, 0)
 
-		@self.on_connected()
-		async def connected_cb():
+		@self.on(ConnectedEvent)
+		async def connected_cb(_):
 			self.tablist.clear()
 
 		@self.on_packet(PacketPosition)

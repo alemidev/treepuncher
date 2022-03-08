@@ -2,13 +2,14 @@ import asyncio
 import datetime
 import functools
 
-from aiocraft.client import MinecraftClient
+#from aiocraft.client import MinecraftClient
 from aiocraft.mc.definitions import Gamemode, Dimension, Difficulty
 from aiocraft.mc.proto import PacketRespawn, PacketLogin, PacketUpdateHealth, PacketExperience, PacketSettings, PacketClientCommand
 
-from ..events import JoinGameEvent, DeathEvent
+from ..events import JoinGameEvent, DeathEvent, ConnectedEvent, DisconnectedEvent
+from ..scaffold import Scaffold
 
-class GameState(MinecraftClient):
+class GameState(Scaffold):
 	hp : float
 	food : float
 	xp : float
@@ -26,24 +27,6 @@ class GameState(MinecraftClient):
 	difficulty : Difficulty
 	join_time : datetime.datetime
 
-	def on_death(self):
-		def decorator(fun):
-			@functools.wraps(fun)
-			async def wrapper():
-				event = DeathEvent()
-				return await fun(event)
-			return self.register(DeathEvent.SENTINEL, wrapper)
-		return decorator
-
-	def on_joined_world(self):
-		def decorator(fun):
-			@functools.wraps(fun)
-			async def wrapper():
-				event = JoinGameEvent()
-				return await fun(event)
-			return self.register(JoinGameEvent.SENTINEL, wrapper)
-		return decorator
-
 	def __init__(self, *args, **kwargs):
 		super().__init__(*args, **kwargs)
 
@@ -58,8 +41,8 @@ class GameState(MinecraftClient):
 		self.xp = 0.0
 		self.lvl = 0
 
-		@self.on_disconnected()
-		async def disconnected_cb():
+		@self.on(DisconnectedEvent)
+		async def disconnected_cb(_):
 			self.in_game = False
 
 		@self.on_packet(PacketRespawn)

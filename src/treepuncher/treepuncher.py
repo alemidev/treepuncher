@@ -14,11 +14,19 @@ from configparser import ConfigParser
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 from aiocraft.client import MinecraftClient
+from aiocraft.util import helpers
 from aiocraft.mc.packet import Packet
+from aiocraft.mc.definitions import ConnectionState
+from aiocraft.mc.proto import PacketSetCompression, PacketKickDisconnect
+from aiocraft.mc.proto.play.clientbound import PacketKeepAlive
+from aiocraft.mc.proto.play.serverbound import PacketKeepAlive as PacketKeepAliveResponse
 
+from .scaffold import Scaffold
+from .events import ConnectedEvent, DisconnectedEvent
 from .storage import Storage, SystemState
 from .notifier import Notifier
 from .game import GameState, GameChat, GameInventory, GameTablist, GameWorld
+from .traits import CallbacksHolder, Runnable
 
 REMOVE_COLOR_FORMATS = re.compile(r"§[0-9a-z]")
 
@@ -87,6 +95,8 @@ class Treepuncher(
 	modules : List[Addon]
 	ctx : Dict[Any, Any]
 
+	_processing : bool
+
 	def __init__(self, name:str, *args, config_file:str=None, notifier:Notifier=None, **kwargs):
 		super().__init__(*args, **kwargs)
 		self.ctx = dict()
@@ -133,19 +143,55 @@ class Treepuncher(
 		self.storage._set_state(state)
 
 	async def start(self):
+		# if self.started: # TODO readd check
+		# 	return
+		await super().start()
 		await self.notifier.initialize()
 		for m in self.modules:
 			await m.initialize()
-		await super().start()
+		self._processing = True
+		self._worker = asyncio.get_event_loop().create_task(self._work())
 		self.scheduler.resume()
+		self._logger.info("Treepuncher started")
 
 	async def stop(self, force:bool=False):
+		self._processing = False
 		self.scheduler.pause()
-		await super().stop(force=force)
+		if self.dispatcher.connected:
+			await self.dispatcher.disconnect(block=not force)
+		if not force:
+			await self._worker
+			await self.join_callbacks()
 		for m in self.modules:
 			await m.cleanup()
 		await self.notifier.cleanup()
+		await super().stop()
+		self._logger.info("Treepuncher stopped")
 
 	def install(self, module:Type[Addon]) -> Type[Addon]:
 		self.modules.append(module(self))
 		return module
+
+	async def _work(self):
+		try:
+			server_data = await self.info(host=self.host, port=self.port)
+		except Exception:
+			return self._logger.exception("exception while pinging server")
+		while self._processing:
+			try:
+				await self.join(
+					host=self.host,
+					port=self.port,
+					proto=server_data['version']['protocol'],
+					packet_whitelist=self.callback_keys(filter=Packet),
+				)
+			except ConnectionRefusedError:
+				self._logger.error("Server rejected connection")
+			except OSError as e:
+				self._logger.error("Connection error : %s", str(e))
+			except Exception:
+				self._logger.exception("Unhandled exception")
+				break
+			await asyncio.sleep(5) # TODO setting
+		if self._processing:
+			await self.stop(force=True)

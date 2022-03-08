@@ -3,11 +3,13 @@ import datetime
 
 from typing import Dict, List
 
-from aiocraft.client import MinecraftClient
 from aiocraft.mc.definitions import Item
 from aiocraft.mc.proto import PacketPlayerInfo
 
-class GameTablist(MinecraftClient):
+from ..scaffold import Scaffold
+from ..events import ConnectedEvent
+
+class GameTablist(Scaffold):
 	tablist : Dict[uuid.UUID, dict]
 
 	def __init__(self, *args, **kwargs):
@@ -15,8 +17,8 @@ class GameTablist(MinecraftClient):
 
 		self.tablist = {}
 
-		@self.on_connected()
-		async def connected_cb():
+		@self.on(ConnectedEvent)
+		async def connected_cb(_):
 			self.tablist.clear()
 
 		@self.on_packet(PacketPlayerInfo)
