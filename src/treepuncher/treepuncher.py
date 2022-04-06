@@ -17,6 +17,7 @@ from aiocraft.client import MinecraftClient
 from aiocraft.util import helpers
 from aiocraft.mc.packet import Packet
 from aiocraft.mc.definitions import ConnectionState
+from aiocraft.mc.auth import AuthInterface, MicrosoftAuthenticator, MojangAuthenticator
 from aiocraft.mc.proto import PacketSetCompression, PacketKickDisconnect
 from aiocraft.mc.proto.play.clientbound import PacketKeepAlive
 from aiocraft.mc.proto.play.serverbound import PacketKeepAlive as PacketKeepAliveResponse
@@ -97,8 +98,17 @@ class Treepuncher(
 
 	_processing : bool
 
-	def __init__(self, name:str, *args, config_file:str=None, notifier:Notifier=None, **kwargs):
-		super().__init__(*args, **kwargs)
+	def __init__(
+		self,
+		name:str,
+		server:str,
+		config_file:str=None,
+		notifier:Notifier=None,
+		online_mode:bool=True,
+		authenticator:Optional[AuthInterface]=None,
+		**kwargs
+	):
+		super().__init__(server, online_mode=online_mode, authenticator=authenticator, username=name)
 		self.ctx = dict()
 
 		self.name = name

@@ -84,7 +84,7 @@ def main():
 		client_secret=args.secret,
 		redirect_uri=args.uri
 	)
-
+	
 	enabled_addons = set(a.lower() for a in args.add)
 	for addon in addons:
 		if addon.__name__.lower() in enabled_addons:
