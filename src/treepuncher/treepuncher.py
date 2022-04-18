@@ -5,7 +5,7 @@ import asyncio
 import datetime
 import uuid
 
-from typing import List, Dict, Optional, Any, Type, get_args, get_type_hints, Set
+from typing import List, Dict, Optional, Any, Type, get_args, get_origin, get_type_hints, Set
 from time import time
 from dataclasses import dataclass, MISSING, fields
 from configparser import ConfigParser
@@ -26,20 +26,17 @@ def parse_with_hint(val:str, hint:Any) -> Any:
 		if val.lower() in ['1', 'true', 't', 'on', 'enabled']:
 			return True
 		return False
-	if hint in (list, List):
+	if hint is list or get_origin(hint) is list:
 		if get_args(hint):
 			return [ parse_with_hint(x, get_args(hint)[0]) for x in val.split() ]
 		return val.split()
-	if hint in (set, Set):
+	if hint is set or get_origin(hint) is set:
 		if get_args(hint):
 			return set( parse_with_hint(x, get_args(hint)[0]) for x in val.split() )
 		return set(val.split())
-	if hint in (dict, Dict):
+	if hint is dict or get_origin(hint) is dict:
 		return json.loads(val)
-	if isinstance(hint, type): # try to instantiate with type directly
-		return hint(val)
-	logging.warning("Could not parse %s with %s", val, str(hint))
-	return val # fallback
+	return (get_origin(hint) or hint)(val) # try to instantiate directly
 
 class ConfigObject:
 	def __getitem__(self, key: str) -> Any:
