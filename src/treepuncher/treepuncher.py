@@ -151,12 +151,6 @@ class Treepuncher(
 			)
 
 		self.storage = Storage(self.name)
-		prev = self.storage.system()  # if this isn't 1st time, this won't be None. Load token from there
-		if prev:
-			if self.name != prev.name:
-				self.logger.warning("Saved session belong to another user")
-			authenticator.deserialize(json.loads(prev.token))
-			self.logger.info("Loaded authenticated session")
 
 		self.modules = []
 
@@ -168,6 +162,13 @@ class Treepuncher(
 
 		super().__init__(opt('server', required=True), online_mode=online_mode, authenticator=authenticator)
 
+		prev = self.storage.system()  # if this isn't 1st time, this won't be None. Load token from there
+		if prev:
+			if self.name != prev.name:
+				self.logger.warning("Saved session belong to another user")
+			authenticator.deserialize(json.loads(prev.token))
+			self.logger.info("Loaded authenticated session")
+
 
 	@property
 	def playerName(self) -> str:
@@ -177,7 +178,7 @@ class Treepuncher(
 		await super().authenticate()
 		state = SystemState(
 			name=self.name,
-			token=json.dumps(self._authenticator.serialize()),
+			token=json.dumps(self.authenticator.serialize()),
 			start_time=int(time())
 		)
 		self.storage._set_state(state)
@@ -232,6 +233,7 @@ class Treepuncher(
 			except Exception:
 				self.logger.exception("Unhandled exception")
 				break
-			await asyncio.sleep(5)  # TODO setting
+			if self._processing:
+				await asyncio.sleep(self.config['core'].getfloat('reconnect_delay', fallback=5))
 		if self._processing:
 			await self.stop(force=True)

@@ -62,6 +62,7 @@ def main():
 	parser.add_argument('--code', dest='code', default='', help='login code for oauth2 flow')
 
 	parser.add_argument('--mojang', dest='mojang', action='store_const', const=True, default=False, help="use legacy Mojang authenticator")
+	parser.add_argument('--print-token', dest='print_token', action='store_const', const=True, default=False, help="show legacy token before stopping")
 
 	parser.add_argument('--addon-path', dest='path', default='', help='path for loading addons')
 	parser.add_argument('--chat-log', dest='chat_log', action='store_const', const=True, default=False, help="print (colored) chat to terminal")
@@ -101,6 +102,9 @@ def main():
 			client.install(addon)
 
 	client.run()
+
+	if args.print_token:
+		logging.info("Token: %s", client.authenticator.serialize())
 
 if __name__ == "__main__":
 	main()
