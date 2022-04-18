@@ -121,6 +121,9 @@ class Treepuncher(
 				username= opt('username') or name,
 				password= opt('password') 
 			)
+			if opt('legacy_token'):
+				authenticator.deserialize(json.loads(opt('mojang_token')))
+
 		else:
 			authenticator = MicrosoftAuthenticator(
 				client_id= opt('client_id'),
