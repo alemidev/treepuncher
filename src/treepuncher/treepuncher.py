@@ -5,7 +5,7 @@ import asyncio
 import datetime
 import uuid
 
-from typing import List, Dict, Optional, Any, Type, get_type_hints
+from typing import List, Dict, Optional, Any, Type, get_args, get_type_hints, Set
 from time import time
 from dataclasses import dataclass, MISSING, fields
 from configparser import ConfigParser
@@ -21,6 +21,25 @@ from .game import GameState, GameChat, GameInventory, GameTablist, GameWorld
 
 REMOVE_COLOR_FORMATS = re.compile(r"§[0-9a-z]")
 
+def parse_with_hint(val:str, hint:Any) -> Any:
+	if hint is bool:
+		if val.lower() in ['1', 'true', 't', 'on', 'enabled']:
+			return True
+		return False
+	if hint in (list, List):
+		if get_args(hint):
+			return [ parse_with_hint(x, get_args(hint)[0]) for x in val.split() ]
+		return val.split()
+	if hint in (set, Set):
+		if get_args(hint):
+			return set( parse_with_hint(x, get_args(hint)[0]) for x in val.split() )
+		return set(val.split())
+	if hint in (dict, Dict):
+		return json.loads(val)
+	if isinstance(hint, type): # try to instantiate with type directly
+		return hint(val)
+	logging.warning("Could not parse %s with %s", val, str(hint))
+	return val # fallback
 
 class ConfigObject:
 	def __getitem__(self, key: str) -> Any:
@@ -52,10 +71,7 @@ class Addon:
 					else field.default_factory() if field.default_factory is not MISSING \
 					else MISSING
 				if cfg.has_option(self.name, field.name):
-					if field.type is bool:
-						opts[field.name] = self._client.config[self.name].getboolean(field.name)
-					else:
-						opts[field.name] = field.type(self._client.config[self.name].get(field.name))
+					opts[field.name] = parse_with_hint(self._client.config[self.name].get(field.name), field.type)
 				elif default is MISSING:
 					repr_type = field.type.__name__ if isinstance(field.type, type) else str(field.type) # TODO fix for 3.8 I think?
 					raise ValueError(
