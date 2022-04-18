@@ -149,9 +149,9 @@ class Treepuncher(
 		prev = self.storage.system()  # if this isn't 1st time, this won't be None. Load token from there
 		if prev:
 			if self.name != prev.name:
-				self.logger.warning("Saved credentials belong to another session")
+				self.logger.warning("Saved session belong to another user")
 			authenticator.deserialize(json.loads(prev.token))
-			self.logger.info("Loaded credentials")
+			self.logger.info("Loaded authenticated session")
 
 		self.modules = []
 
@@ -221,6 +221,9 @@ class Treepuncher(
 				self.logger.error("Server rejected connection")
 			except OSError as e:
 				self.logger.error("Connection error : %s", str(e))
+			except AuthException as e:
+				self.logger.error("Auth exception : [%s|%d] %s (%s)", e.endpoint, e.code, e.data, e.kwargs)
+				break
 			except Exception:
 				self.logger.exception("Unhandled exception")
 				break
