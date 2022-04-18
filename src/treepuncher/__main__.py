@@ -66,7 +66,7 @@ def main():
 	parser.add_argument('--addon-path', dest='path', default='', help='path for loading addons')
 	parser.add_argument('--chat-log', dest='chat_log', action='store_const', const=True, default=False, help="print (colored) chat to terminal")
 	parser.add_argument('--chat-input', dest='chat_input', action='store_const', const=True, default=False, help="read input from stdin and send it to chat")
-	parser.add_argument('--addons', dest='add', nargs='+', type=str, default=[a.__name__ for a in addons], help='specify addons to enable, defaults to all')
+	parser.add_argument('--addons', dest='add', nargs='+', type=str, default=None, help='specify addons to enable, defaults to all')
 	# TODO find a better way to specify which addons are enabled
 
 	args = parser.parse_args()
@@ -85,8 +85,13 @@ def main():
 		legacy=args.mojang,
 		use_packet_whitelist=args.use_packet_whitelist,
 	)
+
+	enabled_addons = set(
+		a.lower() for a in (
+			args.add if args.add is not None else client.config.sections()
+		)
+	)
 	
-	enabled_addons = set(a.lower() for a in args.add)
 	for addon in addons:
 		if addon.__name__.lower() in enabled_addons:
 			logging.info("Installing '%s'", addon.__name__)
