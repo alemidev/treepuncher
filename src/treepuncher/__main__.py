@@ -13,7 +13,7 @@ from dataclasses import dataclass, MISSING, fields
 
 from setproctitle import setproctitle
 
-from .treepuncher import Treepuncher, Addon, ConfigObject
+from .treepuncher import Treepuncher, Addon, ConfigObject, MissingParameterError
 from .helpers import configure_logging
 
 def main():
@@ -79,12 +79,15 @@ def main():
 	if args.server:
 		kwargs["server"] = args.server
 
-	client = Treepuncher(
-		args.name,
-		args.server,
-		legacy=args.mojang,
-		use_packet_whitelist=args.use_packet_whitelist,
-	)
+	try:
+		client = Treepuncher(
+			args.name,
+			args.server,
+			legacy=args.mojang,
+			use_packet_whitelist=args.use_packet_whitelist,
+		)
+	except MissingParameterError as e:
+		return logging.error(e.args[0])
 
 	enabled_addons = set(
 		a.lower() for a in (

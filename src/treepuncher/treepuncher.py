@@ -88,6 +88,8 @@ class Addon:
 	async def cleanup(self):
 		pass
 
+class MissingParameterError(Exception):
+	pass
 
 class Treepuncher(
 	GameState,
@@ -125,23 +127,26 @@ class Treepuncher(
 
 		authenticator : AuthInterface
 
-		def opt(k:str) -> Any:
-			return kwargs.get(k) or self.config['Treepuncher'].get(k)
+		def opt(k:str, required=False, default=None) -> Any:
+			v = kwargs.get(k) or self.config['Treepuncher'].get(k) or default
+			if not v and required:
+				raise MissingParameterError(f"Missing configuration parameter '{k}'")
+			return v
 
 		if not online_mode:
 			authenticator = OfflineAuthenticator(self.name)
 		elif legacy:
 			authenticator = MojangAuthenticator(
-				username= opt('username') or name,
+				username= opt('username', default=name, required=True),
 				password= opt('password') 
 			)
 			if opt('legacy_token'):
 				authenticator.deserialize(json.loads(opt('legacy_token')))
 		else:
 			authenticator = MicrosoftAuthenticator(
-				client_id= opt('client_id'),
-				client_secret= opt('client_secret'),
-				redirect_uri= opt('redirect_uri'),
+				client_id= opt('client_id', required=True),
+				client_secret= opt('client_secret', required=True),
+				redirect_uri= opt('redirect_uri', required=True),
 				code= opt('code'),
 			)
 
@@ -161,7 +166,7 @@ class Treepuncher(
 		logging.getLogger('apscheduler.executors.default').setLevel(logging.WARNING)  # So it's way less spammy
 		self.scheduler.start(paused=True)
 
-		super().__init__(opt('server'), online_mode=online_mode, authenticator=authenticator)
+		super().__init__(opt('server', required=True), online_mode=online_mode, authenticator=authenticator)
 
 
 	@property
