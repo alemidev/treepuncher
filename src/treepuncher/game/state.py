@@ -55,7 +55,7 @@ class GameState(Scaffold):
 				self.in_game = True
 			else:
 				self.in_game = False
-			self._logger.info(
+			self.logger.info(
 				"Reloading world: %s (%s) in %s",
 				self.dimension.name,
 				self.difficulty.name,
@@ -73,7 +73,7 @@ class GameState(Scaffold):
 				self.in_game = True
 			else:
 				self.in_game = False
-			self._logger.info(
+			self.logger.info(
 				"Joined world: %s (%s) in %s",
 				self.dimension.name,
 				self.difficulty.name,
@@ -100,7 +100,7 @@ class GameState(Scaffold):
 			self.food = packet.food + packet.foodSaturation
 			if died:
 				self.run_callbacks(DeathEvent.SENTINEL)
-				self._logger.info("Dead, respawning...")
+				self.logger.info("Dead, respawning...")
 				await asyncio.sleep(0.5)
 				await self.dispatcher.write(
 					PacketClientCommand(self.dispatcher.proto, actionId=0) # respawn
@@ -109,7 +109,7 @@ class GameState(Scaffold):
 		@self.on_packet(PacketExperience)
 		async def player_xp_cb(packet:PacketExperience):
 			if packet.level != self.lvl:
-				self._logger.info("Level up : %d", packet.level)
+				self.logger.info("Level up : %d", packet.level)
 			self.xp = packet.experienceBar
 			self.lvl = packet.level
 			self.total_xp = packet.totalExperience

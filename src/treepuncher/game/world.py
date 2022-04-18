@@ -25,7 +25,7 @@ class GameWorld(Scaffold):
 		@self.on_packet(PacketPosition)
 		async def player_rubberband_cb(packet:PacketPosition):
 			self.position = BlockPos(packet.x, packet.y, packet.z)
-			self._logger.info(
+			self.logger.info(
 				"Position synchronized : (x:%.0f,y:%.0f,z:%.0f)",
 				self.position.x, self.position.y, self.position.z
 			)

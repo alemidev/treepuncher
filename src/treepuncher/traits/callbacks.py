@@ -12,8 +12,6 @@ class CallbacksHolder:
 	_callbacks : Dict[Any, List[Callable]]
 	_tasks : Dict[uuid.UUID, asyncio.Event]
 
-	_logger : logging.Logger
-
 	def __init__(self):
 		super().__init__()
 		self._callbacks = {}
