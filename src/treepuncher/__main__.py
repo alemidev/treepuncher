@@ -42,7 +42,8 @@ def main():
 			default = field.default if field.default is not MISSING \
 				else field.default_factory() if field.default_factory is not MISSING \
 				else MISSING
-			help_text += f"\n    * {field.name} ({field.type.__name__}) | {'-required-' if default is MISSING else f'{default}'}"
+			repr_type = field.type.__name__ if isinstance(field.type, type) else str(field.type) # TODO fix for 3.8 I think?
+			help_text += f"\n    * {field.name} ({repr_type}) | {'-required-' if default is MISSING else f'{default}'}"
 	help_text += '\n'
 
 	parser = argparse.ArgumentParser(
