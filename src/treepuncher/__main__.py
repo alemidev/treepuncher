@@ -81,6 +81,7 @@ def main():
 	client = Treepuncher(
 		args.name,
 		args.server,
+		legacy=args.mojang,
 		use_packet_whitelist=args.use_packet_whitelist,
 	)
 	
