@@ -53,16 +53,17 @@ def main():
 	)
 
 	parser.add_argument('name', help='name to use for this client session')
-	parser.add_argument('server', help='server to connect to')
-	parser.add_argument('-c', '--code', dest='code', action='store_const', const=True, default=False, help="request new code to login")
-	parser.add_argument('--client-id', dest='cid', default='c63ef189-23cb-453b-8060-13800b85d2dc', help='client_id of your Azure application')
-	parser.add_argument('--secret', dest='secret', default='N2e7Q~ybYA0IO39KB1mFD4GmoYzISRaRNyi59', help='client_secret of your Azure application')
-	parser.add_argument('--redirect-uri', dest='uri', default='https://fantabos.co/msauth', help='redirect_uri of your Azure application')
+
+	parser.add_argument('--server', dest='server', default='', help='server to connect to')
+	parser.add_argument('--debug', dest='_debug', action='store_const', const=True, default=False, help="enable debug logs")
+	parser.add_argument('--no-packet-filter', dest='use_packet_whitelist', action='store_const', const=False, default=True, help="disable packet whitelist, will decrease performance")
+
+	parser.add_argument('--code', dest='code', default='', help='login code for oauth2 flow')
+	parser.add_argument('--mojang', dest='mojang', action='store_const', const=True, default=False, help="use legacy Mojang authenticator")
+
 	parser.add_argument('--addon-path', dest='path', default='', help='path for loading addons')
 	parser.add_argument('--chat-log', dest='chat_log', action='store_const', const=True, default=False, help="print (colored) chat to terminal")
 	parser.add_argument('--chat-input', dest='chat_input', action='store_const', const=True, default=False, help="read input from stdin and send it to chat")
-	parser.add_argument('--debug', dest='_debug', action='store_const', const=True, default=False, help="enable debug logs")
-	parser.add_argument('--no-packet-filter', dest='use_packet_whitelist', action='store_const', const=False, default=True, help="disable packet whitelist, will decrease performance")
 	parser.add_argument('--addons', dest='add', nargs='+', type=str, default=[a.__name__ for a in addons], help='specify addons to enable, defaults to all')
 	# TODO find a better way to specify which addons are enabled
 
@@ -71,18 +72,15 @@ def main():
 	configure_logging(args.name, level=logging.DEBUG if args._debug else logging.INFO)
 	setproctitle(f"treepuncher[{args.name}]")
 
-	code = None
-	if args.code:
-		code = input(f"-> Go to 'https://fantabos.co/msauth?client_id={args.cid}&state=hardcoded', click 'Auth' and login, then copy here the code you received\n--> ")
+	kwargs = {}
+
+	if args.server:
+		kwargs["server"] = args.server
 
 	client = Treepuncher(
 		args.name,
 		args.server,
 		use_packet_whitelist=args.use_packet_whitelist,
-		login_code=code,
-		client_id=args.cid,
-		client_secret=args.secret,
-		redirect_uri=args.uri
 	)
 	
 	enabled_addons = set(a.lower() for a in args.add)
