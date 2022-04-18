@@ -7,7 +7,7 @@ import uuid
 
 from typing import List, Dict, Optional, Any, Type, get_type_hints
 from time import time
-from dataclasses import dataclass, MISSING
+from dataclasses import dataclass, MISSING, fields
 from configparser import ConfigParser
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
@@ -47,21 +47,22 @@ class Addon:
 		opts: Dict[str, Any] = {}
 		cfg_clazz = get_type_hints(type(self))['config']
 		if cfg_clazz is not ConfigObject:
-			for name, field in cfg_clazz.__dataclass_fields__.items():
+			for field in fields(cfg_clazz):
 				default = field.default if field.default is not MISSING \
 					else field.default_factory() if field.default_factory is not MISSING \
 					else MISSING
-				if cfg.has_option(self.name, name):
+				if cfg.has_option(self.name, field.name):
 					if field.type is bool:
-						opts[name] = self._client.config[self.name].getboolean(name)
+						opts[field.name] = self._client.config[self.name].getboolean(field.name)
 					else:
-						opts[name] = field.type(self._client.config[self.name].get(name))
+						opts[field.name] = field.type(self._client.config[self.name].get(field.name))
 				elif default is MISSING:
+					repr_type = field.type.__name__ if isinstance(field.type, type) else str(field.type) # TODO fix for 3.8 I think?
 					raise ValueError(
-						f"Missing required value '{name}' of type '{field.type.__name__}' in section '{self.name}'"
+						f"Missing required value '{field.name}' of type '{repr_type}' in section '{self.name}'"
 					)
 				else:  # not really necessary since it's a dataclass but whatever
-					opts[name] = default
+					opts[field.name] = default
 		self.config = self.Options(**opts)
 		self.register()
 
@@ -122,8 +123,7 @@ class Treepuncher(
 				password= opt('password') 
 			)
 			if opt('legacy_token'):
-				authenticator.deserialize(json.loads(opt('mojang_token')))
-
+				authenticator.deserialize(json.loads(opt('legacy_token')))
 		else:
 			authenticator = MicrosoftAuthenticator(
 				client_id= opt('client_id'),
