@@ -102,7 +102,7 @@ class Treepuncher(
 	config: ConfigParser
 	storage: Storage
 
-	notifier: Notifier
+	notifier: Optional[Notifier]
 	scheduler: AsyncIOScheduler
 	modules: List[Addon]
 	ctx: Dict[Any, Any]
@@ -115,7 +115,6 @@ class Treepuncher(
 		config_file: str = None,
 		online_mode: bool = True,
 		legacy: bool = False,
-		notifier: Notifier = None,
 		**kwargs
 	):
 		self.ctx = dict()
@@ -153,8 +152,8 @@ class Treepuncher(
 		self.storage = Storage(self.name)
 
 		self.modules = []
+		self.notifier = None
 
-		self.notifier = notifier or Notifier()
 		# tz = datetime.datetime.now(datetime.timezone.utc).astimezone().tzname()  # This doesn't work anymore
 		self.scheduler = AsyncIOScheduler()  # TODO APScheduler warns about timezone ugghh
 		logging.getLogger('apscheduler.executors.default').setLevel(logging.WARNING)  # So it's way less spammy
@@ -187,6 +186,8 @@ class Treepuncher(
 		# if self.started: # TODO readd check
 		# 	return
 		await super().start()
+		if not self.notifier:
+			self.notifier = Notifier()
 		await self.notifier.initialize()
 		for m in self.modules:
 			await m.initialize()
@@ -205,12 +206,18 @@ class Treepuncher(
 			await self.join_callbacks()
 		for m in self.modules:
 			await m.cleanup()
-		await self.notifier.cleanup()
+		if self.notifier:
+			await self.notifier.cleanup()
 		await super().stop()
 		self.logger.info("Treepuncher stopped")
 
 	def install(self, module: Type[Addon]) -> Type[Addon]:
-		self.modules.append(module(self))
+		m = module(self)
+		self.modules.append(m)
+		if isinstance(m, Notifier):
+			if self.notifier:
+				self.logger.warning("Replacing previously loaded notifier %s", str(self.notifier))
+			self.notifier = m
 		return module
 
 	async def _work(self):

@@ -1,12 +1,14 @@
 from typing import Callable, List
 
-class Notifier: # TODO this should be an Addon too!
+from treepuncher import Addon
+
+class Notifier(Addon): # TODO this should be an Addon too!
 	_report_functions : List[Callable]
 
 	def __init__(self):
 		self._report_functions = []
 
-	def register(self, fn:Callable):
+	def add_reporter(self, fn:Callable):
 		self._report_functions.append(fn)
 		return fn
 
