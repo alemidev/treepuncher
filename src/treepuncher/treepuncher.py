@@ -196,17 +196,14 @@ class Treepuncher(
 
 	async def _work(self):
 		try:
-			server_data = await self.info(host=self.host, port=self.port)
+			server_data = await self.info()
+			self.dispatcher.set_proto(server_data['version']['protocol'])
 		except Exception:
 			return self.logger.exception("exception while pinging server")
 		while self._processing:
 			try:
-				await self.join(
-					host=self.host,
-					port=self.port,
-					proto=server_data['version']['protocol'],
-					packet_whitelist=self.callback_keys(filter=Packet),
-				)
+				self.dispatcher.whitelist(self.callback_keys(filter=Packet))
+				await self.join()
 			except ConnectionRefusedError:
 				self.logger.error("Server rejected connection")
 			except OSError as e:
