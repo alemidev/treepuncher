@@ -8,8 +8,8 @@ import inspect
 
 from pathlib import Path
 from importlib import import_module
-from typing import get_type_hints
-from dataclasses import dataclass, MISSING
+from typing import List, Type, get_type_hints
+from dataclasses import dataclass, MISSING, fields
 
 from setproctitle import setproctitle
 
@@ -38,11 +38,11 @@ def main():
 		cfg_clazz = get_type_hints(addon)['config']
 		if cfg_clazz is ConfigObject:
 			continue # it's the superclass type hint
-		for name, field in cfg_clazz.__dataclass_fields__.items():
+		for field in fields(cfg_clazz):
 			default = field.default if field.default is not MISSING \
 				else field.default_factory() if field.default_factory is not MISSING \
 				else MISSING
-			help_text += f"\n    * {name} ({field.type.__name__}) | {'-required-' if default is MISSING else f'{default}'}"
+			help_text += f"\n    * {field.name} ({field.type.__name__}) | {'-required-' if default is MISSING else f'{default}'}"
 	help_text += '\n'
 
 	parser = argparse.ArgumentParser(
@@ -59,6 +59,7 @@ def main():
 	parser.add_argument('--no-packet-filter', dest='use_packet_whitelist', action='store_const', const=False, default=True, help="disable packet whitelist, will decrease performance")
 
 	parser.add_argument('--code', dest='code', default='', help='login code for oauth2 flow')
+
 	parser.add_argument('--mojang', dest='mojang', action='store_const', const=True, default=False, help="use legacy Mojang authenticator")
 
 	parser.add_argument('--addon-path', dest='path', default='', help='path for loading addons')
