@@ -42,7 +42,7 @@ class Storage:
 		cur = self.db.cursor()
 		cur.execute('CREATE TABLE system (name TEXT PRIMARY KEY, version TEXT, start_time LONG)')
 		cur.execute('CREATE TABLE documents (name TEXT PRIMARY KEY, value TEXT)')
-		cur.execute('CREATE TABLE authenticator (date TEXT PRIMARY KEY, token TEXT, legacy BOOL')
+		cur.execute('CREATE TABLE authenticator (date TEXT PRIMARY KEY, token TEXT, legacy BOOL)')
 		self.db.commit()
 
 	def _set_state(self, state:SystemState):
