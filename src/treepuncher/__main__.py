@@ -64,6 +64,7 @@ def main():
 	parser.add_argument('--mojang', dest='mojang', action='store_const', const=True, default=False, help="use legacy Mojang authenticator")
 	parser.add_argument('--print-token', dest='print_token', action='store_const', const=True, default=False, help="show legacy token before stopping")
 
+	parser.add_argument('--addons', dest='add', metavar="A", nargs='+', type=str, default=None, help='specify addons to enable, defaults to all')
 	# parser.add_argument('--addon-path', dest='path', default='', help='path for loading addons') # TODO make this possible
 
 	args = parser.parse_args()
