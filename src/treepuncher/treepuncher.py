@@ -258,6 +258,6 @@ class Treepuncher(
 				self.logger.exception("Unhandled exception")
 				break
 			if self._processing:
-				await asyncio.sleep(self.config['core'].getfloat('reconnect_delay', fallback=5))
+				await asyncio.sleep(self.config['Treepuncher'].getfloat('reconnect_delay', fallback=5))
 		if self._processing:
 			await self.stop(force=True)
