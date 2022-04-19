@@ -87,7 +87,8 @@ class Addon:
 class Notifier(Addon): # TODO this should be an Addon too!
 	_report_functions : List[Callable]
 
-	def __init__(self):
+	def __init__(self, *args, **kwargs):
+		super().__init__(*args, **kwargs)
 		self._report_functions = []
 
 	def add_reporter(self, fn:Callable):
