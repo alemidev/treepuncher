@@ -31,7 +31,7 @@ def main():
 			if obj != Addon and inspect.isclass(obj) and issubclass(obj, Addon):
 				addons.add(obj)
 
-	help_text = '\n\naddons:'
+	help_text = '\n\naddons (enabled via config file):'
 
 	for addon in addons:
 		help_text += f"\n  {addon.__name__} \t{addon.__doc__ or ''}"
@@ -64,11 +64,7 @@ def main():
 	parser.add_argument('--mojang', dest='mojang', action='store_const', const=True, default=False, help="use legacy Mojang authenticator")
 	parser.add_argument('--print-token', dest='print_token', action='store_const', const=True, default=False, help="show legacy token before stopping")
 
-	parser.add_argument('--addon-path', dest='path', default='', help='path for loading addons')
-	parser.add_argument('--chat-log', dest='chat_log', action='store_const', const=True, default=False, help="print (colored) chat to terminal")
-	parser.add_argument('--chat-input', dest='chat_input', action='store_const', const=True, default=False, help="read input from stdin and send it to chat")
-	parser.add_argument('--addons', dest='add', nargs='+', type=str, default=None, help='specify addons to enable, defaults to all')
-	# TODO find a better way to specify which addons are enabled
+	# parser.add_argument('--addon-path', dest='path', default='', help='path for loading addons') # TODO make this possible
 
 	args = parser.parse_args()
 
