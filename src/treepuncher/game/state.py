@@ -79,7 +79,7 @@ class GameState(Scaffold):
 				self.difficulty.name,
 				self.gamemode.name
 			)
-			self.run_callbacks(JoinGameEvent, self.dimension, self.difficulty, self.gamemode)
+			self.run_callbacks(JoinGameEvent(self.dimension, self.difficulty, self.gamemode))
 			await self.dispatcher.write(
 				PacketSettings(
 					self.dispatcher.proto,
