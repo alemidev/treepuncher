@@ -79,7 +79,7 @@ class GameState(Scaffold):
 				self.difficulty.name,
 				self.gamemode.name
 			)
-			self.run_callbacks(JoinGameEvent(self.dimension, self.difficulty, self.gamemode))
+			self.run_callbacks(JoinGameEvent, JoinGameEvent(self.dimension, self.difficulty, self.gamemode))
 			await self.dispatcher.write(
 				PacketSettings(
 					self.dispatcher.proto,
@@ -99,7 +99,7 @@ class GameState(Scaffold):
 			self.hp = packet.health
 			self.food = packet.food + packet.foodSaturation
 			if died:
-				self.run_callbacks(DeathEvent.SENTINEL)
+				self.run_callbacks(DeathEvent, DeathEvent())
 				self.logger.info("Dead, respawning...")
 				await asyncio.sleep(0.5)
 				await self.dispatcher.write(
