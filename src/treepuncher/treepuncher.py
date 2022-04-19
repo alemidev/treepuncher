@@ -4,6 +4,7 @@ import logging
 import asyncio
 import datetime
 import uuid
+import pkg_resources
 
 from typing import List, Dict, Optional, Any, Type, get_args, get_origin, get_type_hints, Set, Callable
 from time import time
@@ -15,8 +16,10 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from aiocraft.mc.packet import Packet
 from aiocraft.mc.auth import AuthInterface, AuthException, MojangAuthenticator, MicrosoftAuthenticator, OfflineAuthenticator
 
-from .storage import Storage, SystemState
+from .storage import Storage, SystemState, AuthenticatorState
 from .game import GameState, GameChat, GameInventory, GameTablist, GameWorld
+
+__VERSION__ = pkg_resources.get_distribution('treepuncher').version
 
 def parse_with_hint(val:str, hint:Any) -> Any:
 	if hint is bool:
@@ -181,11 +184,20 @@ class Treepuncher(
 		super().__init__(opt('server', required=True), online_mode=online_mode, authenticator=authenticator)
 
 		prev = self.storage.system()  # if this isn't 1st time, this won't be None. Load token from there
+		state = SystemState(self.name, __VERSION__, 0)
 		if prev:
+			state.start_time = prev.start_time
 			if self.name != prev.name:
 				self.logger.warning("Saved session belong to another user")
-			authenticator.deserialize(json.loads(prev.token))
-			self.logger.info("Loaded authenticated session")
+			if prev.version != state.version:
+				self.logger.warning("Saved session uses a different version")
+			prev_auth = self.storage.auth()
+			if prev_auth:
+				if prev_auth.legacy ^ isinstance(authenticator, MicrosoftAuthenticator):
+					self.logger.warning("Saved session is incompatible with configured authenticator")
+				authenticator.deserialize(prev_auth.token)
+				self.logger.info("Loaded session from %s", prev_auth.date)
+		self.storage._set_state(state)
 
 
 	@property
@@ -194,12 +206,12 @@ class Treepuncher(
 
 	async def authenticate(self):
 		await super().authenticate()
-		state = SystemState(
-			name=self.name,
-			token=json.dumps(self.authenticator.serialize()),
-			start_time=int(time())
+		state = AuthenticatorState(
+			date=datetime.datetime.now(),
+			token=self.authenticator.serialize(),
+			legacy=isinstance(self.authenticator, MojangAuthenticator)
 		)
-		self.storage._set_state(state)
+		self.storage._set_auth(state)
 
 	async def start(self):
 		# if self.started: # TODO readd check
@@ -213,6 +225,7 @@ class Treepuncher(
 		self._worker = asyncio.get_event_loop().create_task(self._work())
 		self.scheduler.resume()
 		self.logger.info("Treepuncher started")
+		self.storage._set_state(SystemState(self.name, __VERSION__, time()))
 
 	async def stop(self, force: bool = False):
 		self._processing = False
