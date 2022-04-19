@@ -1,6 +1,6 @@
 from typing import Callable, List
 
-from treepuncher import Addon
+from .addon import Addon
 
 class Notifier(Addon): # TODO this should be an Addon too!
 	_report_functions : List[Callable]
