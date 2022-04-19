@@ -239,7 +239,8 @@ class Treepuncher(
 	async def _work(self):
 		try:
 			server_data = await self.info()
-			self.dispatcher.set_proto(server_data['version']['protocol'])
+			if "version" in server_data and "protocol" in server_data["version"]:
+				self.dispatcher.set_proto(server_data['version']['protocol'])
 		except Exception:
 			return self.logger.exception("exception while pinging server")
 		while self._processing:
