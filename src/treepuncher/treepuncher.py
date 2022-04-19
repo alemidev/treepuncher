@@ -206,7 +206,7 @@ class Treepuncher(
 		# 	return
 		await super().start()
 		if not self.notifier:
-			self.notifier = Notifier()
+			self.notifier = Notifier(self)
 		for m in self.modules:
 			await m.initialize()
 		self._processing = True
