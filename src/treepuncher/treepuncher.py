@@ -207,7 +207,6 @@ class Treepuncher(
 		await super().start()
 		if not self.notifier:
 			self.notifier = Notifier()
-		await self.notifier.initialize()
 		for m in self.modules:
 			await m.initialize()
 		self._processing = True
@@ -225,8 +224,6 @@ class Treepuncher(
 			await self.join_callbacks()
 		for m in self.modules:
 			await m.cleanup()
-		if self.notifier:
-			await self.notifier.cleanup()
 		await super().stop()
 		self.logger.info("Treepuncher stopped")
 

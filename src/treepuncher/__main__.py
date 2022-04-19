@@ -30,6 +30,7 @@ def main():
 			obj = getattr(m, obj_name)
 			if obj != Addon and inspect.isclass(obj) and issubclass(obj, Addon):
 				addons.append(obj)
+				break
 
 	help_text = '\n\naddons:'
 
