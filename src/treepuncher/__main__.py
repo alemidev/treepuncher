@@ -13,7 +13,7 @@ from dataclasses import dataclass, MISSING, fields
 
 from setproctitle import setproctitle
 
-from .treepuncher import Treepuncher, MissingParameterError, Addon, ConfigObject
+from .treepuncher import Treepuncher, MissingParameterError, Addon, ConfigObject, Notifier
 from .helpers import configure_logging
 
 def main():
@@ -96,9 +96,16 @@ def main():
 			args.add if args.add is not None else client.config.sections()
 		)
 	)
-	
+
+	# TODO ugly af! notifiers get installed first tho
+
 	for addon in addons:
-		if addon.__name__.lower() in enabled_addons:
+		if addon.__name__.lower() in enabled_addons and issubclass(addon, Notifier):
+			logging.info("Installing '%s'", addon.__name__)
+			client.install(addon)
+
+	for addon in addons:
+		if addon.__name__.lower() in enabled_addons and not issubclass(addon, Notifier):
 			logging.info("Installing '%s'", addon.__name__)
 			client.install(addon)
 
