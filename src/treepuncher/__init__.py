@@ -1,2 +1,1 @@
-from .treepuncher import Treepuncher
-from .addon import Addon, ConfigObject
+from .treepuncher import Treepuncher, ConfigObject, Addon, Notifier

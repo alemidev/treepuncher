@@ -13,8 +13,7 @@ from dataclasses import dataclass, MISSING, fields
 
 from setproctitle import setproctitle
 
-from .treepuncher import Treepuncher, MissingParameterError
-from .addon import Addon, ConfigObject
+from .treepuncher import Treepuncher, MissingParameterError, Addon, ConfigObject
 from .helpers import configure_logging
 
 def main():
