@@ -1,1 +1,2 @@
-from .treepuncher import Treepuncher, Addon, ConfigObject
+from .treepuncher import Treepuncher
+from .addon import Addon, ConfigObject
