@@ -8,7 +8,7 @@ import inspect
 
 from pathlib import Path
 from importlib import import_module
-from typing import List, Type, get_type_hints
+from typing import List, Type, Set, get_type_hints
 from dataclasses import dataclass, MISSING, fields
 
 from setproctitle import setproctitle
@@ -21,7 +21,7 @@ def main():
 	# TODO would be cool if it was possible to configure addons path, but we need to load addons before doing argparse so we can do helptext
 	# addon_path = Path(args.path) if args.addon_path else ( root/'addons' )
 	addon_path = Path('addons')
-	addons : List[Type[Addon]] = []
+	addons : Set[Type[Addon]] = set()
 
 	for path in sorted(addon_path.rglob('*.py')):
 		py_path = str(path).replace('/', '.').replace('.py', '')
@@ -29,8 +29,7 @@ def main():
 		for obj_name in vars(m).keys():
 			obj = getattr(m, obj_name)
 			if obj != Addon and inspect.isclass(obj) and issubclass(obj, Addon):
-				addons.append(obj)
-				break
+				addons.add(obj)
 
 	help_text = '\n\naddons:'
 
