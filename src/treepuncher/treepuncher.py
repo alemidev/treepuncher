@@ -221,9 +221,9 @@ class Treepuncher(
 			await self.dispatcher.disconnect(block=not force)
 		if not force:
 			await self._worker
+			for m in self.modules:
+				await m.cleanup()
 			await self.join_callbacks()
-		for m in self.modules:
-			await m.cleanup()
 		await super().stop()
 		self.logger.info("Treepuncher stopped")
 
