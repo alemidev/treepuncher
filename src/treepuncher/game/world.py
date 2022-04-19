@@ -4,7 +4,8 @@ import datetime
 from typing import Dict, List
 
 from aiocraft.mc.definitions import BlockPos
-from aiocraft.mc.proto import PacketPosition, PacketTeleportConfirm
+from aiocraft.mc.proto.play.clientbound import PacketPosition
+from aiocraft.mc.proto.play.serverbound import PacketTeleportConfirm
 
 from ..scaffold import Scaffold
 from ..events import ConnectedEvent
