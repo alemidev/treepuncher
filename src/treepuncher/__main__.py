@@ -25,11 +25,14 @@ def main():
 
 	for path in sorted(addon_path.rglob('*.py')):
 		py_path = str(path).replace('/', '.').replace('.py', '')
-		m = import_module(py_path)
-		for obj_name in vars(m).keys():
-			obj = getattr(m, obj_name)
-			if obj != Addon and inspect.isclass(obj) and issubclass(obj, Addon):
-				addons.add(obj)
+		try:
+			m = import_module(py_path)
+			for obj_name in vars(m).keys():
+				obj = getattr(m, obj_name)
+				if obj != Addon and inspect.isclass(obj) and issubclass(obj, Addon):
+					addons.add(obj)
+		except Exception as e:
+			logging.debug("Error importing module %s : %s", py_path, str(e))
 
 	help_text = '\n\naddons (enabled via config file):'
 
@@ -49,7 +52,7 @@ def main():
 	parser = argparse.ArgumentParser(
 		prog='python -m treepuncher',
 		description='Treepuncher | Block Game automation framework',
-		epilog=help_text,
+		epilog=help_text, # TODO maybe build this afterwards?
 		formatter_class=argparse.RawDescriptionHelpFormatter,
 	)
 
@@ -58,6 +61,8 @@ def main():
 	parser.add_argument('--server', dest='server', default='', help='server to connect to')
 	parser.add_argument('--debug', dest='_debug', action='store_const', const=True, default=False, help="enable debug logs")
 	parser.add_argument('--no-packet-filter', dest='use_packet_whitelist', action='store_const', const=False, default=True, help="disable packet whitelist, will decrease performance")
+
+	parser.add_argument('--offline', dest='offline', action='store_const', const=True, default=False, help="run client in offline mode")
 
 	parser.add_argument('--code', dest='code', default='', help='login code for oauth2 flow')
 
@@ -81,6 +86,7 @@ def main():
 		client = Treepuncher(
 			args.name,
 			args.server,
+			online_mode=not args.offline,
 			legacy=args.mojang,
 			use_packet_whitelist=args.use_packet_whitelist,
 		)
