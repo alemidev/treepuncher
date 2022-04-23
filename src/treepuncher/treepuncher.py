@@ -28,7 +28,11 @@ def parse_with_hint(val:str, hint:Any) -> Any:
 		return False
 	if hint is list or get_origin(hint) is list:
 		if get_args(hint):
-			return [ parse_with_hint(x, get_args(hint)[0]) for x in val.split() ]
+			return list( parse_with_hint(x, get_args(hint)[0]) for x in val.split() )
+		return val.split()
+	if hint is tuple or get_origin(hint) is tuple:
+		if get_args(hint):
+			return tuple( parse_with_hint(x, get_args(hint)[0]) for x in val.split() )
 		return val.split()
 	if hint is set or get_origin(hint) is set:
 		if get_args(hint):
@@ -37,7 +41,9 @@ def parse_with_hint(val:str, hint:Any) -> Any:
 	if hint is dict or get_origin(hint) is dict:
 		return json.loads(val)
 	if hint is Union or get_origin(hint) is Union:
-		for t in get_args(hint):
+		# TODO str will never fail, should be tried last.
+		#  cheap fix: sort keys by name so that "str" comes last
+		for t in sorted(get_args(hint), key=lambda x : str(x)):
 			try:
 				return t(val)
 			except ValueError:
