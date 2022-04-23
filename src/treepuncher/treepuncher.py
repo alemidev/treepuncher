@@ -6,7 +6,7 @@ import datetime
 import uuid
 import pkg_resources
 
-from typing import List, Dict, Optional, Any, Type, get_args, get_origin, get_type_hints, Set, Callable
+from typing import List, Dict, Optional, Union, Any, Type, get_args, get_origin, get_type_hints, Set, Callable
 from time import time
 from dataclasses import dataclass, MISSING, fields
 from configparser import ConfigParser
@@ -36,6 +36,12 @@ def parse_with_hint(val:str, hint:Any) -> Any:
 		return set(val.split())
 	if hint is dict or get_origin(hint) is dict:
 		return json.loads(val)
+	if hint is Union or get_origin(hint) is Union:
+		for t in get_args(hint):
+			try:
+				return t(val)
+			except ValueError:
+				pass
 	return (get_origin(hint) or hint)(val) # try to instantiate directly
 
 class ConfigObject:
