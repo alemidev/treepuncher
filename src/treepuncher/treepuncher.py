@@ -1,15 +1,13 @@
-import re
 import json
 import logging
 import asyncio
 import datetime
-import uuid
 import pkg_resources
 
-from typing import List, Dict, Optional, Union, Any, Type, get_args, get_origin, get_type_hints, Set, Callable
+from typing import Coroutine, List, Dict, Optional, Union, Any, Type, get_args, get_origin, get_type_hints, Set, Callable
 from time import time
 from dataclasses import dataclass, MISSING, fields
-from configparser import ConfigParser
+from configparser import ConfigParser, SectionProxy
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
@@ -99,7 +97,7 @@ class Addon:
 	async def cleanup(self):
 		pass
 
-class Notifier(Addon): # TODO this should be an Addon too!
+class Notifier(Addon):
 	_report_functions : List[Callable]
 
 	def __init__(self, *args, **kwargs):
@@ -212,7 +210,7 @@ class Treepuncher(
 		self.storage._set_state(state)
 
 	@property
-	def cfg(self) -> ConfigParser:
+	def cfg(self) -> SectionProxy:
 		return self.config["Treepuncher"]
 
 	@property
@@ -265,30 +263,33 @@ class Treepuncher(
 		return module
 
 	async def _work(self):
-		if "force_proto" in self.cfg:
-			self.dispatcher.set_proto(self.cfg.getint('force_proto'))
-		else:
-			try:
-				server_data = await self.info()
-				if "version" in server_data and "protocol" in server_data["version"]:
-					self.dispatcher.set_proto(server_data['version']['protocol'])
-			except (ConnectionRefusedError, OSError) as e:
-				self.logger.error("Connection error : %s", str(e))
-			except Exception:
-				self.logger.exception("Unhandled exception while pinging server")
-		while self._processing:
-			try:
-				self.dispatcher.whitelist(self.callback_keys(filter=Packet))
-				await self.join()
-			except (ConnectionRefusedError, OSError) as e:
-				self.logger.error("Connection error : %s", str(e))
-			except AuthException as e:
-				self.logger.error("Auth exception : [%s|%d] %s (%s)", e.endpoint, e.code, e.data, e.kwargs)
-				break
-			except Exception:
-				self.logger.exception("Unhandled exception")
-				break
-			if self._processing:
-				await asyncio.sleep(self.config['Treepuncher'].getfloat('reconnect_delay', fallback=5))
+		try:
+			if "force_proto" in self.cfg:
+				self.dispatcher.set_proto(self.cfg.getint('force_proto'))
+			else:
+				try:
+					server_data = await self.info()
+					if "version" in server_data and "protocol" in server_data["version"]:
+						self.dispatcher.set_proto(server_data['version']['protocol'])
+				except OSError as e:
+					self.logger.error("Connection error : %s", str(e))
+
+			self.dispatcher.whitelist(self.callback_keys(filter=Packet))
+
+			while self._processing:
+				try:
+					await self.join()
+				except OSError as e:
+					self.logger.error("Connection error : %s", str(e))
+				except AuthException as e:
+					self.logger.error("Auth exception : [%s|%d] %s (%s)", e.endpoint, e.code, e.data, e.kwargs)
+					break
+
+				if self._processing: # don't sleep if Treepuncher is stopping
+					await asyncio.sleep(self.cfg.getfloat('reconnect_delay', fallback=5))
+
+		except Exception:
+			self.logger.exception("Unhandled exception")
+
 		if self._processing:
 			await self.stop(force=True)
