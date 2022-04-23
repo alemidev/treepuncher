@@ -205,6 +205,9 @@ class Treepuncher(
 				self.logger.info("Loaded session from %s", prev_auth.date)
 		self.storage._set_state(state)
 
+	@property
+	def cfg(self) -> ConfigParser:
+		return self.config["Treepuncher"]
 
 	@property
 	def playerName(self) -> str:
@@ -256,19 +259,22 @@ class Treepuncher(
 		return module
 
 	async def _work(self):
-		try:
-			server_data = await self.info()
-			if "version" in server_data and "protocol" in server_data["version"]:
-				self.dispatcher.set_proto(server_data['version']['protocol'])
-		except Exception:
-			return self.logger.exception("exception while pinging server")
+		if "force_proto" in self.cfg:
+			self.dispatcher.set_proto(self.cfg.getint('force_proto'))
+		else:
+			try:
+				server_data = await self.info()
+				if "version" in server_data and "protocol" in server_data["version"]:
+					self.dispatcher.set_proto(server_data['version']['protocol'])
+			except (ConnectionRefusedError, OSError) as e:
+				self.logger.error("Connection error : %s", str(e))
+			except Exception:
+				self.logger.exception("Unhandled exception while pinging server")
 		while self._processing:
 			try:
 				self.dispatcher.whitelist(self.callback_keys(filter=Packet))
 				await self.join()
-			except ConnectionRefusedError:
-				self.logger.error("Server rejected connection")
-			except OSError as e:
+			except (ConnectionRefusedError, OSError) as e:
 				self.logger.error("Connection error : %s", str(e))
 			except AuthException as e:
 				self.logger.error("Auth exception : [%s|%d] %s (%s)", e.endpoint, e.code, e.data, e.kwargs)
