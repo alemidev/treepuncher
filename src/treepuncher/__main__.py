@@ -32,7 +32,8 @@ def main():
 				if obj != Addon and inspect.isclass(obj) and issubclass(obj, Addon):
 					addons.add(obj)
 		except Exception as e:
-			logging.debug("Error importing module %s : %s", py_path, str(e))
+			# logging.debug("Error importing module %s : %s", py_path, str(e)) # TODO if we log anything here we get everything logged twice?
+			pass
 
 	help_text = '\n\naddons (enabled via config file):'
 
