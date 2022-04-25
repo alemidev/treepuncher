@@ -55,6 +55,8 @@ class ConfigObject:
 class Addon:
 	name: str
 	config: ConfigObject
+	logger: logging.Logger
+
 	_client: 'Treepuncher'
 
 	@dataclass(frozen=True)
@@ -86,6 +88,7 @@ class Addon:
 				else:  # not really necessary since it's a dataclass but whatever
 					opts[field.name] = default
 		self.config = self.Options(**opts)
+		self.logger = self._client.logger.getChild(self.name)
 		self.register()
 
 	def register(self):
