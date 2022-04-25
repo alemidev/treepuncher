@@ -87,6 +87,6 @@ class Storage:
 	def put(self, key:str, val:Any) -> None:
 		cur = self.db.cursor()
 		cur.execute("DELETE FROM documents WHERE name = ?", (key,))
-		cur.execute("INSERT INTO documents VALUES (?, ?)", (key, json.dumps(val)))
+		cur.execute("INSERT INTO documents VALUES (?, ?)", (key, json.dumps(val, default=str)))
 		self.db.commit()
 
