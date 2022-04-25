@@ -7,10 +7,12 @@ from signal import signal, SIGINT, SIGTERM, SIGABRT
 class Runnable:
 	_is_running : bool
 	_stop_task : Optional[asyncio.Task]
+	_loop : asyncio.AbstractEventLoop
 
 	def __init__(self):
 		self._is_running = False
 		self._stop_task = None
+		self._loop = asyncio.get_event_loop()
 
 	async def start(self):
 		self._is_running = True
@@ -32,14 +34,12 @@ class Runnable:
 
 		signal(SIGINT, signal_handler)
 
-		loop = asyncio.get_event_loop()
-
 		async def main():
 			await self.start()
 			while self._is_running:
 				await asyncio.sleep(1)
 
-		loop.run_until_complete(main())
+		self._loop.run_until_complete(main())
 
 		logging.info("Process finished")
 
