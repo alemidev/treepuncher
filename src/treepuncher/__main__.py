@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 import os
 import re
+import sys
 import asyncio
 import logging
 import argparse
@@ -24,7 +25,7 @@ def main():
 	addons : Set[Type[Addon]] = set()
 
 	for path in sorted(addon_path.rglob('*.py')):
-		py_path = str(path).replace('/', '.').replace('.py', '')
+		py_path = str(path).replace('/', '.').replace('\\', '.').replace('.py', '')
 		try:
 			m = import_module(py_path)
 			for obj_name in vars(m).keys():
