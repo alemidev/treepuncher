@@ -235,8 +235,10 @@ class Treepuncher(
 		await super().start()
 		if not self.notifier:
 			self.notifier = Notifier(self)
+		await self.notifier.initialize()
 		for m in self.modules:
-			await m.initialize()
+			if not isinstance(m, Notifier):
+				await m.initialize()
 		self._processing = True
 		self._worker = asyncio.get_event_loop().create_task(self._work())
 		self.scheduler.resume()
