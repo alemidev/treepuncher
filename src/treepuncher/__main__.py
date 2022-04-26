@@ -8,6 +8,7 @@ import inspect
 
 from pathlib import Path
 from importlib import import_module
+import traceback
 from typing import List, Type, Set, get_type_hints
 from dataclasses import dataclass, MISSING, fields
 
@@ -32,7 +33,8 @@ def main():
 				if obj != Addon and inspect.isclass(obj) and issubclass(obj, Addon):
 					addons.add(obj)
 		except Exception as e:
-			# logging.debug("Error importing module %s : %s", py_path, str(e)) # TODO if we log anything here we get everything logged twice?
+			print(f"Exception importing addon {py_path}")
+			traceback.print_exc()
 			pass
 
 	help_text = '\n\naddons (enabled via config file):'
