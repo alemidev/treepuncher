@@ -16,112 +16,12 @@ from aiocraft.mc.auth import AuthInterface, AuthException, MojangAuthenticator, 
 
 from .storage import Storage, SystemState, AuthenticatorState
 from .game import GameState, GameChat, GameInventory, GameTablist, GameWorld
+from .scaffold import ConfigObject
+from .addon import Addon
+from .notifier import Notifier, Provider, LoggingProvider
 
 __VERSION__ = pkg_resources.get_distribution('treepuncher').version
 
-def parse_with_hint(val:str, hint:Any) -> Any:
-	if hint is bool:
-		if val.lower() in ['1', 'true', 't', 'on', 'enabled']:
-			return True
-		return False
-	if hint is list or get_origin(hint) is list:
-		if get_args(hint):
-			return list( parse_with_hint(x, get_args(hint)[0]) for x in val.split() )
-		return val.split()
-	if hint is tuple or get_origin(hint) is tuple:
-		if get_args(hint):
-			return tuple( parse_with_hint(x, get_args(hint)[0]) for x in val.split() )
-		return val.split()
-	if hint is set or get_origin(hint) is set:
-		if get_args(hint):
-			return set( parse_with_hint(x, get_args(hint)[0]) for x in val.split() )
-		return set(val.split())
-	if hint is dict or get_origin(hint) is dict:
-		return json.loads(val)
-	if hint is Union or get_origin(hint) is Union:
-		# TODO str will never fail, should be tried last.
-		#  cheap fix: sort keys by name so that "str" comes last
-		for t in sorted(get_args(hint), key=lambda x : str(x)):
-			try:
-				return t(val)
-			except ValueError:
-				pass
-	return (get_origin(hint) or hint)(val) # try to instantiate directly
-
-class ConfigObject:
-	def __getitem__(self, key: str) -> Any:
-		return getattr(self, key)
-
-class Addon:
-	name: str
-	config: ConfigObject
-	logger: logging.Logger
-
-	_client: 'Treepuncher'
-
-	@dataclass(frozen=True)
-	class Options(ConfigObject):
-		pass
-
-	@property
-	def client(self) -> 'Treepuncher':
-		return self._client
-
-	def __init__(self, client: 'Treepuncher', *args, **kwargs):
-		self._client = client
-		self.name = type(self).__name__
-		cfg = self._client.config
-		opts: Dict[str, Any] = {}
-		cfg_clazz = get_type_hints(type(self))['config']
-		if cfg_clazz is not ConfigObject:
-			for field in fields(cfg_clazz):
-				default = field.default if field.default is not MISSING \
-					else field.default_factory() if field.default_factory is not MISSING \
-					else MISSING
-				if cfg.has_option(self.name, field.name):
-					opts[field.name] = parse_with_hint(self._client.config[self.name].get(field.name), field.type)
-				elif default is MISSING:
-					repr_type = field.type.__name__ if isinstance(field.type, type) else str(field.type) # TODO fix for 3.8 I think?
-					raise ValueError(
-						f"Missing required value '{field.name}' of type '{repr_type}' in section '{self.name}'"
-					)
-				else:  # not really necessary since it's a dataclass but whatever
-					opts[field.name] = default
-		self.config = self.Options(**opts)
-		self.logger = self._client.logger.getChild(self.name)
-		self.register()
-
-	def register(self):
-		pass
-
-	async def initialize(self):
-		pass
-
-	async def cleanup(self):
-		pass
-
-class Notifier(Addon):
-	_report_functions : List[Callable]
-
-	def __init__(self, *args, **kwargs):
-		super().__init__(*args, **kwargs)
-		self._report_functions = []
-
-	def add_reporter(self, fn:Callable):
-		self._report_functions.append(fn)
-		return fn
-
-	def report(self) -> str:
-		return '\n'.join(str(fn()).strip() for fn in self._report_functions)
-
-	def notify(self, text, log:bool = False, **kwargs):
-		print(text)
-
-	async def initialize(self):
-		pass
-
-	async def cleanup(self):
-		pass
 
 class MissingParameterError(Exception):
 	pass
@@ -137,7 +37,7 @@ class Treepuncher(
 	config: ConfigParser
 	storage: Storage
 
-	notifier: Optional[Notifier]
+	notifier: Notifier
 	scheduler: AsyncIOScheduler
 	modules: List[Addon]
 	ctx: Dict[Any, Any]
@@ -186,8 +86,9 @@ class Treepuncher(
 
 		self.storage = Storage(self.name)
 
+		self.notifier = Notifier(self)
+
 		self.modules = []
-		self.notifier = None
 
 		# tz = datetime.datetime.now(datetime.timezone.utc).astimezone().tzname()  # This doesn't work anymore
 		self.scheduler = AsyncIOScheduler()  # TODO APScheduler warns about timezone ugghh
@@ -233,12 +134,11 @@ class Treepuncher(
 		# if self.started: # TODO readd check
 		# 	return
 		await super().start()
-		if not self.notifier:
-			self.notifier = Notifier(self)
-		await self.notifier.initialize()
-		for m in self.modules:
-			if not isinstance(m, Notifier):
-				await m.initialize()
+
+		await self.notifier.start()
+		await asyncio.gather(
+			*(m.initialize() for m in self.modules)
+		)
 		self._processing = True
 		self._worker = asyncio.get_event_loop().create_task(self._work())
 		self.scheduler.resume()
@@ -253,18 +153,20 @@ class Treepuncher(
 		if not force:
 			await self._worker
 			await self.join_callbacks()
-			for m in self.modules:
-				await m.cleanup()
+			await asyncio.gather(
+				*(m.cleanup() for m in self.modules)
+			)
 		await super().stop()
 		self.logger.info("Treepuncher stopped")
 
 	def install(self, module: Type[Addon]) -> Type[Addon]:
 		m = module(self)
-		self.modules.append(m)
-		if isinstance(m, Notifier):
-			if self.notifier:
-				self.logger.warning("Replacing previously loaded notifier %s", str(self.notifier))
-			self.notifier = m
+		if isinstance(m, Provider):
+			self.notifier.add_provider(m)
+		elif isinstance(m, Addon):
+			self.modules.append(m)
+		else:
+			raise ValueError("Given type is not an addon")
 		return module
 
 	async def _work(self):

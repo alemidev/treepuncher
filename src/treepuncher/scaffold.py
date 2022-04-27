@@ -1,4 +1,4 @@
-from typing import Type
+from typing import Type, Any
 
 from aiocraft.client import MinecraftClient
 from aiocraft.util import helpers
@@ -11,6 +11,10 @@ from aiocraft.mc.proto.play.serverbound import PacketKeepAlive as PacketKeepAliv
 from .traits import CallbacksHolder, Runnable
 from .events import ConnectedEvent, DisconnectedEvent
 from .events.base import BaseEvent
+
+class ConfigObject:
+	def __getitem__(self, key: str) -> Any:
+		return getattr(self, key)
 
 class Scaffold(
 	MinecraftClient,
