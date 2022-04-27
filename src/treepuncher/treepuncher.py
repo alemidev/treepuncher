@@ -280,6 +280,7 @@ class Treepuncher(
 					self.logger.error("Connection error : %s", str(e))
 
 			self.dispatcher.whitelist(self.callback_keys(filter=Packet))
+			self.dispatcher.log_ignored_packets(self.cfg.getboolean('log_ignored_packets', fallback=False))
 
 			while self._processing:
 				try:
