@@ -18,7 +18,7 @@ from .storage import Storage, SystemState, AuthenticatorState
 from .game import GameState, GameChat, GameInventory, GameTablist, GameWorld
 from .scaffold import ConfigObject
 from .addon import Addon
-from .notifier import Notifier, Provider, LoggingProvider
+from .notifier import Notifier, Provider
 
 __VERSION__ = pkg_resources.get_distribution('treepuncher').version
 
