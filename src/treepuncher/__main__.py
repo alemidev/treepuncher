@@ -15,7 +15,7 @@ from dataclasses import dataclass, MISSING, fields
 
 from setproctitle import setproctitle
 
-from .treepuncher import Treepuncher, MissingParameterError, Addon, ConfigObject, Notifier
+from .treepuncher import Treepuncher, MissingParameterError, Addon, ConfigObject, Provider
 from .helpers import configure_logging
 
 def main():
@@ -103,15 +103,15 @@ def main():
 		)
 	)
 
-	# TODO ugly af! notifiers get installed first tho
+	# TODO ugly af! providers get installed first tho
 
 	for addon in addons:
-		if addon.__name__.lower() in enabled_addons and issubclass(addon, Notifier):
+		if addon.__name__.lower() in enabled_addons and issubclass(addon, Provider):
 			logging.info("Installing '%s'", addon.__name__)
 			client.install(addon)
 
 	for addon in addons:
-		if addon.__name__.lower() in enabled_addons and not issubclass(addon, Notifier):
+		if addon.__name__.lower() in enabled_addons and not issubclass(addon, Provider):
 			logging.info("Installing '%s'", addon.__name__)
 			client.install(addon)
 
