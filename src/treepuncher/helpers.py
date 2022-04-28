@@ -9,14 +9,14 @@ def configure_logging(name:str, level=logging.INFO, color:bool = True):
 	from logging.handlers import RotatingFileHandler
 
 	class ColorFormatter(logging.Formatter):
-		def __init__(self, fmt:str):
+		def __init__(self, fmt:str, datefmt:str=None):
 			self.fmt : str = fmt
 			self.formatters : Dict[int, logging.Formatter] = {
-				logging.DEBUG: logging.Formatter(colored(fmt, color='grey')),
-				logging.INFO: logging.Formatter(colored(fmt)),
-				logging.WARNING: logging.Formatter(colored(fmt, color='yellow')),
-				logging.ERROR: logging.Formatter(colored(fmt, color='red')),
-				logging.CRITICAL: logging.Formatter(colored(fmt, color='red', attrs=['bold'])),
+				logging.DEBUG: logging.Formatter(colored(fmt, color='grey'), datefmt),
+				logging.INFO: logging.Formatter(colored(fmt), datefmt),
+				logging.WARNING: logging.Formatter(colored(fmt, color='yellow'), datefmt),
+				logging.ERROR: logging.Formatter(colored(fmt, color='red'), datefmt),
+				logging.CRITICAL: logging.Formatter(colored(fmt, color='red', attrs=['bold']), datefmt),
 			}
 	
 		def format(self, record:logging.LogRecord) -> str:
@@ -33,8 +33,8 @@ def configure_logging(name:str, level=logging.INFO, color:bool = True):
 	ch = logging.StreamHandler()
 	ch.setLevel(logging.DEBUG)
 	# create formatter and add it to the handlers
-	file_formatter = logging.Formatter("[%(asctime)s] [%(name)s] [%(levelname)s] %(message)s", "%b %d %Y %H:%M:%S")
-	print_formatter = ColorFormatter("> %(message)s") if color else logging.Formatter("> %(message)s")
+	file_formatter = logging.Formatter("[%(asctime)s.%(msecs)03d] [%(name)s] [%(levelname)s] %(message)s", "%b %d %Y %H:%M:%S")
+	print_formatter = ColorFormatter("%(asctime)s| %(message)s", "%H:%M:%S") if color else logging.Formatter("> %(message)s")
 	fh.setFormatter(file_formatter)
 	ch.setFormatter(print_formatter)
 	# add the handlers to the logger
