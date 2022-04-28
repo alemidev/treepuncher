@@ -43,17 +43,17 @@ class Addon:
 	config: ConfigObject
 	logger: logging.Logger
 
-	_client: Treepuncher
+	_client: 'Treepuncher'
 
 	@dataclass(frozen=True)
 	class Options(ConfigObject):
 		pass
 
 	@property
-	def client(self) -> Treepuncher:
+	def client(self) -> 'Treepuncher':
 		return self._client
 
-	def __init__(self, client: Treepuncher, *args, **kwargs):
+	def __init__(self, client: 'Treepuncher', *args, **kwargs):
 		self._client = client
 		self.name = type(self).__name__
 		cfg = self._client.config

@@ -13,10 +13,10 @@ class Provider(Addon):
 class Notifier:
 	_report_functions : List[Callable]
 	_providers : List[Provider]
-	_client : Treepuncher
+	_client : 'Treepuncher'
 	logger : logging.Logger
 
-	def __init__(self, client:Treepuncher):
+	def __init__(self, client:'Treepuncher'):
 		self._report_functions = []
 		self._providers = []
 		self._client = client
