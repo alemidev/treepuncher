@@ -58,7 +58,7 @@ class Addon:
 		self.name = type(self).__name__
 		cfg = self._client.config
 		opts: Dict[str, Any] = {}
-		cfg_clazz = get_type_hints(type(self))['config']
+		cfg_clazz = get_type_hints(type(self), globalns=globals())['config']
 		if cfg_clazz is not ConfigObject:
 			for field in fields(cfg_clazz):
 				default = field.default if field.default is not MISSING \

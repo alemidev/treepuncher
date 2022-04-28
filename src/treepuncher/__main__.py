@@ -42,7 +42,7 @@ def main():
 
 	for addon in addons:
 		help_text += f"\n  {addon.__name__} \t{addon.__doc__ or ''}"
-		cfg_clazz = get_type_hints(addon)['config']
+		cfg_clazz = get_type_hints(addon, globalns=globals())['config']
 		if cfg_clazz is ConfigObject:
 			continue # it's the superclass type hint
 		for field in fields(cfg_clazz):

@@ -84,6 +84,8 @@ class Treepuncher(
 				code= opt('code'),
 			)
 
+		super().__init__(opt('server', required=True), online_mode=online_mode, authenticator=authenticator)
+
 		self.storage = Storage(self.name)
 
 		self.notifier = Notifier(self)
@@ -94,8 +96,6 @@ class Treepuncher(
 		self.scheduler = AsyncIOScheduler()  # TODO APScheduler warns about timezone ugghh
 		logging.getLogger('apscheduler.executors.default').setLevel(logging.WARNING)  # So it's way less spammy
 		self.scheduler.start(paused=True)
-
-		super().__init__(opt('server', required=True), online_mode=online_mode, authenticator=authenticator)
 
 		prev = self.storage.system()  # if this isn't 1st time, this won't be None. Load token from there
 		state = SystemState(self.name, __VERSION__, 0)
