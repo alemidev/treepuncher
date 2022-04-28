@@ -58,7 +58,11 @@ class Addon:
 		self.name = type(self).__name__
 		cfg = self._client.config
 		opts: Dict[str, Any] = {}
-		cfg_clazz = get_type_hints(type(self), globalns=globals())['config']
+		localns = { 'Treepuncher': None } # TODO jank fix!
+		# get_type_hints attempts to instantiate all string hints (such as 'Treepuncher').
+		# But we can't import Treepuncher here: would be a cyclic import!
+		# We don't care about Treepuncher annotation, so we force it to be None
+		cfg_clazz = get_type_hints(type(self), globalns=globals(), localns=localns)['config']
 		if cfg_clazz is not ConfigObject:
 			for field in fields(cfg_clazz):
 				default = field.default if field.default is not MISSING \
