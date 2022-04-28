@@ -107,7 +107,7 @@ class Treepuncher(
 				self.logger.warning("Saved session uses a different version")
 			prev_auth = self.storage.auth()
 			if prev_auth:
-				if prev_auth.legacy ^ isinstance(authenticator, MicrosoftAuthenticator):
+				if prev_auth.legacy ^ isinstance(authenticator, MojangAuthenticator):
 					self.logger.warning("Saved session is incompatible with configured authenticator")
 				authenticator.deserialize(prev_auth.token)
 				self.logger.info("Loaded session from %s", prev_auth.date)
