@@ -159,7 +159,7 @@ class Treepuncher(
 		await super().stop()
 		self.logger.info("Treepuncher stopped")
 
-	def install(self, module: Type[Addon]) -> Type[Addon]:
+	def install(self, module: Type[Addon]) -> Addon:
 		m = module(self)
 		if isinstance(m, Provider):
 			self.notifier.add_provider(m)
@@ -167,7 +167,7 @@ class Treepuncher(
 			self.modules.append(m)
 		else:
 			raise ValueError("Given type is not an addon")
-		return module
+		return m
 
 	async def _work(self):
 		try:
@@ -189,13 +189,12 @@ class Treepuncher(
 					await self.join()
 				except OSError as e:
 					self.logger.error("Connection error : %s", str(e))
-				except AuthException as e:
-					self.logger.error("Auth exception : [%s|%d] %s (%s)", e.endpoint, e.code, e.data, e.kwargs)
-					break
 
 				if self._processing: # don't sleep if Treepuncher is stopping
 					await asyncio.sleep(self.cfg.getfloat('reconnect_delay', fallback=5))
 
+		except AuthException as e:
+			self.logger.error("Auth exception : [%s|%d] %s (%s)", e.endpoint, e.code, e.data, e.kwargs)
 		except Exception:
 			self.logger.exception("Unhandled exception")
 

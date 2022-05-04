@@ -49,5 +49,4 @@ class CallbacksHolder:
 
 	async def join_callbacks(self):
 		await asyncio.gather(*list(self._tasks.values()))
-		self._tasks.clear()
 
