@@ -37,7 +37,7 @@ class GameTablist(Scaffold):
 					continue # TODO this happens kinda often but doesn't seem to be an issue?
 				if packet.action == ActionType.ADD_PLAYER.value:
 					record['joinTime'] = datetime.datetime.now()
-					self.tablist[uid] = Player(**record) # TODO have it be a Player type inside packet
+					self.tablist[uid] = Player.deserialize(record) # TODO have it be a Player type inside packet
 				elif packet.action == ActionType.UPDATE_GAMEMODE.value:
 					self.tablist[uid].gamemode = record['gamemode']
 				elif packet.action == ActionType.UPDATE_LATENCY.value:
