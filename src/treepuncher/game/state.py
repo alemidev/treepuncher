@@ -1,10 +1,11 @@
 import asyncio
 import datetime
-import functools
 
 #from aiocraft.client import MinecraftClient
 from aiocraft.mc.definitions import Gamemode, Dimension, Difficulty
-from aiocraft.mc.proto import PacketRespawn, PacketLogin, PacketUpdateHealth, PacketExperience, PacketSettings, PacketClientCommand
+from aiocraft.mc.proto import (
+	PacketRespawn, PacketLogin, PacketUpdateHealth, PacketExperience, PacketSettings, PacketClientCommand, PacketAbilities
+)
 
 from ..events import JoinGameEvent, DeathEvent, ConnectedEvent, DisconnectedEvent
 from ..scaffold import Scaffold
@@ -26,6 +27,11 @@ class GameState(Scaffold):
 	dimension : Dimension
 	difficulty : Difficulty
 	join_time : datetime.datetime
+
+	# Abilities
+	flags : int
+	flyingSpeed : float
+	walkingSpeed : float
 
 	def __init__(self, *args, **kwargs):
 		super().__init__(*args, **kwargs)
@@ -113,4 +119,10 @@ class GameState(Scaffold):
 			self.xp = packet.experienceBar
 			self.lvl = packet.level
 			self.total_xp = packet.totalExperience
+
+		@self.on_packet(PacketAbilities)
+		async def player_abilities_cb(packet:PacketAbilities):
+			self.flags = packet.flags
+			self.flyingSpeed = packet.flyingSpeed
+			self.walkingSpeed = packet.walkingSpeed
 
