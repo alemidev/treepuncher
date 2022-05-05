@@ -102,12 +102,17 @@ class GameState(Scaffold):
 		@self.on_packet(PacketUpdateHealth)
 		async def player_hp_cb(packet:PacketUpdateHealth):
 			died = packet.health != self.hp and packet.health <= 0
+			if self.hp != packet.health:
+				if self.hp < packet.health:
+					self.logger.info("Healed by %.1f (%.1f HP)", packet.health - self.hp, packet.health)
+				else:
+					self.logger.info("Took %.1f damage (%.1f HP)", self.hp - packet.health, packet.health)
 			self.hp = packet.health
 			self.food = packet.food + packet.foodSaturation
 			if died:
 				self.run_callbacks(DeathEvent, DeathEvent())
-				self.logger.info("Dead, respawning...")
-				await asyncio.sleep(0.5)
+				self.logger.warning("Died, attempting to respawn")
+				await asyncio.sleep(0.5) # TODO make configurable
 				await self.dispatcher.write(
 					PacketClientCommand(self.dispatcher.proto, actionId=0) # respawn
 				)
