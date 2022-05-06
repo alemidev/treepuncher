@@ -136,9 +136,11 @@ class Treepuncher(
 		await super().start()
 
 		await self.notifier.start()
+		self.logger.debug("Notifier started")
 		await asyncio.gather(
 			*(m.initialize() for m in self.modules)
 		)
+		self.logger.debug("Addons initialized")
 		self._processing = True
 		self._worker = asyncio.get_event_loop().create_task(self._work())
 		self.scheduler.resume()
@@ -152,10 +154,13 @@ class Treepuncher(
 			await self.dispatcher.disconnect(block=not force)
 		if not force:
 			await self._worker
+			self.logger.debug("Joined worker")
 			await self.join_callbacks()
+			self.logger.debug("Joined callbacks")
 			await asyncio.gather(
 				*(m.cleanup() for m in self.modules)
 			)
+			self.logger.debug("Cleaned up addons")
 		await super().stop()
 		self.logger.info("Treepuncher stopped")
 
@@ -170,6 +175,7 @@ class Treepuncher(
 		return m
 
 	async def _work(self):
+		self.logger.debug("Worker started")
 		try:
 			if "force_proto" in self.cfg:
 				self.dispatcher.set_proto(self.cfg.getint('force_proto'))
@@ -200,3 +206,4 @@ class Treepuncher(
 
 		if self._processing:
 			await self.stop(force=True)
+		self.logger.debug("Worker finished")
