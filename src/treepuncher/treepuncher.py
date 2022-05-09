@@ -84,7 +84,12 @@ class Treepuncher(
 				code= opt('code'),
 			)
 
-		super().__init__(opt('server', required=True), online_mode=online_mode, authenticator=authenticator)
+		super().__init__(
+			opt('server', required=True),
+			use_udp=opt('use_udp', default=False),
+			online_mode=online_mode,
+			authenticator=authenticator
+		)
 
 		self.storage = Storage(self.name)
 
