@@ -62,7 +62,7 @@ class Treepuncher(
 		authenticator : AuthInterface
 
 		def opt(k:str, required=False, default=None) -> Any:
-			v = kwargs.get(k) or self.config['Treepuncher'].get(k) or default
+			v = kwargs.get(k) or self.cfg.get(k) or default
 			if not v and required:
 				raise MissingParameterError(f"Missing configuration parameter '{k}'")
 			return v
@@ -86,7 +86,6 @@ class Treepuncher(
 
 		super().__init__(
 			opt('server', required=True),
-			use_udp=opt('use_udp', default=False),
 			online_mode=online_mode,
 			authenticator=authenticator
 		)
@@ -120,7 +119,7 @@ class Treepuncher(
 
 	@property
 	def cfg(self) -> SectionProxy:
-		return self.config["Treepuncher"]
+		return SectionProxy(self.config, "Treepuncher")
 
 	@property
 	def playerName(self) -> str:
