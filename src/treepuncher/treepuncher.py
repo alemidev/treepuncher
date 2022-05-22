@@ -59,7 +59,7 @@ class Treepuncher(
 			v = kwargs.get(k) or self.cfg.get(k) or default
 			if not v and required:
 				raise MissingParameterError(f"Missing configuration parameter '{k}'")
-			if t is bool and v.lower().strip() == 'false': # hardcoded special case
+			if t is bool and isinstance(v, str) and v.lower().strip() == 'false': # hardcoded special case
 				return False
 			return t(v)
 

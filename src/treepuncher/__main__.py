@@ -15,7 +15,8 @@ from dataclasses import dataclass, MISSING, fields
 
 from setproctitle import setproctitle
 
-from .treepuncher import Treepuncher, MissingParameterError, Addon, ConfigObject, Provider
+from .treepuncher import Treepuncher, MissingParameterError, Addon, Provider
+from .scaffold import ConfigObject
 from .helpers import configure_logging
 
 def main():
