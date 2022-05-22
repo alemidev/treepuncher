@@ -1,3 +1,5 @@
+from configparser import ConfigParser, SectionProxy
+
 from typing import Type, Any
 
 from aiocraft.client import MinecraftClient
@@ -22,29 +24,33 @@ class Scaffold(
 	Runnable,
 ):
 
-	send_keep_alive : bool = True # TODO how to handle this?
+	config: ConfigParser
+
+	@property
+	def cfg(self) -> SectionProxy:
+		return SectionProxy(self.config, "Treepuncher")
 
 	def on_packet(self, packet:Type[Packet]):
 		def decorator(fun):
 			return self.register(packet, fun)
 		return decorator
 
-	def on(self, event:Type[BaseEvent]): # TODO maybe move in Treepuncher?
+	def on(self, event:Type[BaseEvent]):
 		def decorator(fun):
 			return self.register(event, fun)
 		return decorator
 
 	#Override
 	async def _play(self) -> bool:
-		self.dispatcher.state = ConnectionState.PLAY
+		self.dispatcher.set_state(ConnectionState.PLAY)
 		self.run_callbacks(ConnectedEvent, ConnectedEvent())
 		async for packet in self.dispatcher.packets():
 			self.logger.debug("[ * ] Processing %s", packet.__class__.__name__)
 			if isinstance(packet, PacketSetCompression):
 				self.logger.info("Compression updated")
-				self.dispatcher.compression = packet.threshold
+				self.dispatcher.set_compression(packet.threshold)
 			elif isinstance(packet, PacketKeepAlive):
-				if self.send_keep_alive:
+				if self.cfg.getboolean("send_keep_alive", fallback=True):
 					keep_alive_packet = PacketKeepAliveResponse(340, keepAliveId=packet.keepAliveId)
 					await self.dispatcher.write(keep_alive_packet)
 			elif isinstance(packet, PacketKickDisconnect):

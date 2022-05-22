@@ -4,10 +4,9 @@ import asyncio
 import datetime
 import pkg_resources
 
-from typing import Coroutine, List, Dict, Optional, Union, Any, Type, get_args, get_origin, get_type_hints, Set, Callable
+from typing import List, Dict, Any, Type
 from time import time
-from dataclasses import dataclass, MISSING, fields
-from configparser import ConfigParser, SectionProxy
+from configparser import ConfigParser
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
@@ -16,12 +15,10 @@ from aiocraft.mc.auth import AuthInterface, AuthException, MojangAuthenticator, 
 
 from .storage import Storage, SystemState, AuthenticatorState
 from .game import GameState, GameChat, GameInventory, GameTablist, GameWorld
-from .scaffold import ConfigObject
 from .addon import Addon
 from .notifier import Notifier, Provider
 
 __VERSION__ = pkg_resources.get_distribution('treepuncher').version
-
 
 class MissingParameterError(Exception):
 	pass
@@ -34,7 +31,6 @@ class Treepuncher(
 	GameWorld
 ):
 	name: str
-	config: ConfigParser
 	storage: Storage
 
 	notifier: Notifier
@@ -48,8 +44,6 @@ class Treepuncher(
 		self,
 		name: str,
 		config_file: str = None,
-		online_mode: bool = True,
-		legacy: bool = False,
 		**kwargs
 	):
 		self.ctx = dict()
@@ -61,15 +55,17 @@ class Treepuncher(
 
 		authenticator : AuthInterface
 
-		def opt(k:str, required=False, default=None) -> Any:
+		def opt(k:str, required=False, default=None, t:type=str) -> Any:
 			v = kwargs.get(k) or self.cfg.get(k) or default
 			if not v and required:
 				raise MissingParameterError(f"Missing configuration parameter '{k}'")
-			return v
+			if t is bool and v.lower().strip() == 'false': # hardcoded special case
+				return False
+			return t(v)
 
-		if not online_mode:
+		if not opt('online_mode', default=True, t=bool):
 			authenticator = OfflineAuthenticator(self.name)
-		elif legacy:
+		elif opt('legacy', default=False, t=bool):
 			authenticator = MojangAuthenticator(
 				username= opt('username', default=name, required=True),
 				password= opt('password') 
@@ -86,8 +82,10 @@ class Treepuncher(
 
 		super().__init__(
 			opt('server', required=True),
-			online_mode=online_mode,
-			authenticator=authenticator
+			authenticator=authenticator,
+			online_mode=opt('online_mode', default=True, t=bool),
+			force_port=opt('force_port', default=0, t=int),
+			resolve_srv=opt('resolve_srv', default=False, t=bool),
 		)
 
 		self.storage = Storage(self.name)
@@ -96,8 +94,7 @@ class Treepuncher(
 
 		self.modules = []
 
-		# tz = datetime.datetime.now(datetime.timezone.utc).astimezone().tzname()  # This doesn't work anymore
-		self.scheduler = AsyncIOScheduler()  # TODO APScheduler warns about timezone ugghh
+		self.scheduler = AsyncIOScheduler()
 		logging.getLogger('apscheduler.executors.default').setLevel(logging.WARNING)  # So it's way less spammy
 		self.scheduler.start(paused=True)
 
@@ -116,10 +113,6 @@ class Treepuncher(
 				authenticator.deserialize(prev_auth.token)
 				self.logger.info("Loaded session from %s", prev_auth.date)
 		self.storage._set_state(state)
-
-	@property
-	def cfg(self) -> SectionProxy:
-		return SectionProxy(self.config, "Treepuncher")
 
 	@property
 	def playerName(self) -> str:
