@@ -19,9 +19,9 @@ class ConfigObject:
 		return getattr(self, key)
 
 class Scaffold(
-	MinecraftClient,
 	CallbacksHolder,
 	Runnable,
+	MinecraftClient,
 ):
 
 	config: ConfigParser
