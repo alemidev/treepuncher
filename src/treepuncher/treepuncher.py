@@ -56,7 +56,11 @@ class Treepuncher(
 		authenticator : AuthInterface
 
 		def opt(k:str, required=False, default=None, t:type=str) -> Any:
-			v = kwargs.get(k) or self.cfg.get(k) or default
+			v = kwargs.get(k)
+			if v is None:
+				v = self.cfg.get(k)
+			if v is None:
+				v = default
 			if not v and required:
 				raise MissingParameterError(f"Missing configuration parameter '{k}'")
 			if t is bool and isinstance(v, str) and v.lower().strip() == 'false': # hardcoded special case
