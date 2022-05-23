@@ -50,8 +50,7 @@ class Treepuncher(
 
 		self.name = name
 		self.config = ConfigParser()
-		config_path = config_file or f'{self.name}.ini'
-		self.config.read(config_path)
+		self.config.read(config_file or f"{self.name}.ini")  # TODO wrap with pathlib
 
 		authenticator : AuthInterface
 
@@ -94,7 +93,7 @@ class Treepuncher(
 			resolve_srv=opt('resolve_srv', default=True, t=bool),
 		)
 
-		self.storage = Storage(self.name)
+		self.storage = Storage(opt('session_file') or f"data/{name}.session")  # TODO wrap with pathlib
 
 		self.notifier = Notifier(self)
 

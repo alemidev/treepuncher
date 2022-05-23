@@ -87,6 +87,11 @@ def main():
 	if args.server:
 		kwargs["server"] = args.server
 
+	if not os.path.isdir('log'):
+		os.mkdir('log')
+	if not os.path.isdir('data'):
+		os.mkdir('data')
+
 	try:
 		client = Treepuncher(
 			args.name,

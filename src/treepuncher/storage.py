@@ -27,8 +27,8 @@ class Storage:
 
 	def __init__(self, name:str):
 		self.name = name
-		init = not os.path.isfile(f"{name}.session")
-		self.db = sqlite3.connect(f'{name}.session')
+		init = not os.path.isfile(name)
+		self.db = sqlite3.connect(name)
 		if init:
 			self._init_db()
 
