@@ -9,7 +9,8 @@ class Runnable:
 	_stop_task : Optional[asyncio.Task]
 	_loop : asyncio.AbstractEventLoop
 
-	def __init__(self):
+	def __init__(self, *args, **kwargs):
+		super().__init__(*args, **kwargs)
 		self._is_running = False
 		self._stop_task = None
 		self._loop = asyncio.get_event_loop()
