@@ -4,7 +4,7 @@ import asyncio
 import datetime
 import pkg_resources
 
-from typing import List, Dict, Any, Type
+from typing import List, Dict, Any, Type, Optional
 from time import time
 from configparser import ConfigParser
 
@@ -55,7 +55,7 @@ class Treepuncher(
 
 		authenticator : AuthInterface
 
-		def opt(k:str, required=False, default=None, t:type=str) -> Any:
+		def opt(k:str, required=False, default=None, t:type=str) -> Optional[Any]:
 			v = kwargs.get(k)
 			if v is None:
 				v = self.cfg.get(k)
@@ -65,6 +65,8 @@ class Treepuncher(
 				raise MissingParameterError(f"Missing configuration parameter '{k}'")
 			if t is bool and isinstance(v, str) and v.lower().strip() == 'false': # hardcoded special case
 				return False
+			if v is None:
+				return None
 			return t(v)
 
 		if not opt('online_mode', default=True, t=bool):
