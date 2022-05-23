@@ -203,8 +203,8 @@ class Treepuncher(
 
 		except AuthException as e:
 			self.logger.error("Auth exception : [%s|%d] %s (%s)", e.endpoint, e.code, e.data, e.kwargs)
-		except Exception:
-			self.logger.exception("Unhandled exception")
+		except Exception as e:
+			self.logger.exception("Unhandled exception : %s", str(e))
 
 		if self._processing:
 			await self.stop(force=True)
