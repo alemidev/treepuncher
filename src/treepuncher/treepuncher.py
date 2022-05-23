@@ -91,7 +91,7 @@ class Treepuncher(
 			authenticator=authenticator,
 			online_mode=opt('online_mode', default=True, t=bool),
 			force_port=opt('force_port', default=0, t=int),
-			resolve_srv=opt('resolve_srv', default=False, t=bool),
+			resolve_srv=opt('resolve_srv', default=True, t=bool),
 		)
 
 		self.storage = Storage(self.name)
