@@ -46,6 +46,7 @@ class GameState(Scaffold):
 		self.food = 20.0
 		self.xp = 0.0
 		self.lvl = 0
+		self.total_xp = 0
 
 		@self.on(DisconnectedEvent)
 		async def disconnected_cb(_):
