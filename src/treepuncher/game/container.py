@@ -45,6 +45,9 @@ class GameContainer(Scaffold):
 		self.window_transaction_id = 0
 		self.window_id = -1
 		self.window_title = ""
+		self.window_inventory_type = ""
+		self.window_entity_id = None
+		self.window_inventory = []
 
 		@self.on(DisconnectedEvent)
 		async def disconnected_cb(_):
