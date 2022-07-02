@@ -14,7 +14,7 @@ from aiocraft.mc.packet import Packet
 from aiocraft.mc.auth import AuthInterface, AuthException, MojangAuthenticator, MicrosoftAuthenticator, OfflineAuthenticator
 
 from .storage import Storage, SystemState, AuthenticatorState
-from .game import GameState, GameChat, GameInventory, GameTablist, GameWorld
+from .game import GameState, GameChat, GameInventory, GameTablist, GameWorld, GameContainer
 from .addon import Addon
 from .notifier import Notifier, Provider
 
@@ -27,6 +27,7 @@ class Treepuncher(
 	GameState,
 	GameChat,
 	GameInventory,
+	GameContainer,
 	GameTablist,
 	GameWorld
 ):
