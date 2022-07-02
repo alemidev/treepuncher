@@ -1,4 +1,5 @@
 import asyncio
+import json
 import uuid
 import datetime
 import asyncio
@@ -43,8 +44,7 @@ class GameWorld(Scaffold):
 			@self.on_packet(PacketMapChunk)
 			async def map_chunk_cb(packet:PacketMapChunk):
 				assert isinstance(packet.bitMap, int)
-				packet.blockEntities
-				c = Chunk(packet.x, packet.z, packet.bitMap, packet.groundUp)
+				c = Chunk(packet.x, packet.z, packet.bitMap, packet.groundUp, json.dumps(packet.blockEntities))  # TODO a solution which is not jank!
 				c.read(packet.chunkData)
 				self.world.put(c, packet.x, packet.z, not packet.groundUp)
 
