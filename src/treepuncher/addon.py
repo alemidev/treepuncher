@@ -1,7 +1,7 @@
 import json
 import logging
 
-from typing import TYPE_CHECKING, Dict, Any, Union, List, Callable, get_type_hints, get_args, get_origin
+from typing import TYPE_CHECKING, Dict, Any, Optional, Union, List, Callable, get_type_hints, get_args, get_origin
 from dataclasses import dataclass, MISSING, fields
 
 from .scaffold import ConfigObject
@@ -29,13 +29,17 @@ def parse_with_hint(val:str, hint:Any) -> Any:
 	if hint is dict or get_origin(hint) is dict:
 		return json.loads(val)
 	if hint is Union or get_origin(hint) is Union:
-		# TODO str will never fail, should be tried last.
-		#  cheap fix: sort keys by name so that "str" comes last
-		for t in sorted(get_args(hint), key=lambda x : str(x)):
+		for t in get_args(hint):
+			if t is type(None) and val in ("null", ""):
+				return None
+			if t is str:
+				continue # try this last, will always succeed
 			try:
 				return t(val)
 			except ValueError:
 				pass
+		if any(t is str for t in get_args(hint)):
+			return str(val)
 	return (get_origin(hint) or hint)(val) # try to instantiate directly
 
 class Addon:
