@@ -36,14 +36,14 @@ class GameContainer(Scaffold):
 			)
 		)
 		self.window_transaction_id = 0
-		self.window_id = -1
+		self.window_id = 0
 		self.window_title = ""
 
 	def __init__(self, *args, **kwargs):
 		super().__init__(*args, **kwargs)
 
 		self.window_transaction_id = 0
-		self.window_id = -1
+		self.window_id = 0
 		self.window_title = ""
 		self.window_inventory_type = ""
 		self.window_entity_id = None
@@ -52,7 +52,7 @@ class GameContainer(Scaffold):
 		@self.on(DisconnectedEvent)
 		async def disconnected_cb(_):
 			self.window_transaction_id = 0
-			self.window_id = -1
+			self.window_id = 0
 			self.window_title = ""
 
 		@self.on_packet(PacketOpenWindow)
@@ -65,5 +65,5 @@ class GameContainer(Scaffold):
 
 		@self.on_packet(PacketSetSlot)
 		async def on_set_slot(packet:PacketSetSlot):
-			if packet.windowId == self.window_id:
+			if self.window_id > 0 and packet.windowId == self.window_id:
 				self.window_inventory[packet.slot] = packet.item
