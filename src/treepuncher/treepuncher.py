@@ -20,6 +20,10 @@ from .notifier import Notifier, Provider
 
 __VERSION__ = pkg_resources.get_distribution('treepuncher').version
 
+async def _cleanup(m: Addon, l: logging.Logger):
+	await m.cleanup()
+	l.debug("Cleaned up addon %s", m.name)
+
 class MissingParameterError(Exception):
 	pass
 
@@ -161,7 +165,7 @@ class Treepuncher(
 			await self.join_callbacks()
 			self.logger.debug("Joined callbacks")
 			await asyncio.gather(
-				*(m.cleanup() for m in self.modules)
+				*(_cleanup(m, self.logger) for m in self.modules)
 			)
 			self.logger.debug("Cleaned up addons")
 		await super().stop()
