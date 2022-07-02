@@ -17,7 +17,7 @@ class GameContainer(Scaffold):
 	window_inventory_type : str
 	window_entity_id : Optional[int]
 	window_transaction_id : int
-	window_inventory : List[Item]
+	window_inventory : List[Optional[Item]]
 
 	@property
 	def is_container_open(self) -> bool:
@@ -57,11 +57,12 @@ class GameContainer(Scaffold):
 
 		@self.on_packet(PacketOpenWindow)
 		async def on_player_open_window(packet:PacketOpenWindow):
+			assert isinstance(packet.inventoryType, str)
 			self.window_id = packet.windowId
 			self.window_title = packet.windowTitle
 			self.window_inventory_type = packet.inventoryType
-			self.window_entity_id = packet.entityId
-			self.window_inventory = [None] * packet.slotCount
+			self.window_entity_id = packet.entityId if packet.inventoryType == "EntityHorse" and hasattr(packet, "entityId") else None
+			self.window_inventory = [None] * (packet.slotCount + 1)
 
 		@self.on_packet(PacketSetSlot)
 		async def on_set_slot(packet:PacketSetSlot):
