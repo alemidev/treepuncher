@@ -1,6 +1,5 @@
 import asyncio
 import datetime
-from turtle import window_width
 from typing import List, Optional
 
 #from aiocraft.client import MinecraftClient
