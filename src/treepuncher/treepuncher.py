@@ -168,6 +168,8 @@ class Treepuncher(
 				*(_cleanup(m, self.logger) for m in self.modules)
 			)
 			self.logger.debug("Cleaned up addons")
+			await self.notifier.stop()
+			self.logger.debug("Notifier stopped")
 		await super().stop()
 		self.logger.info("Treepuncher stopped")
 
