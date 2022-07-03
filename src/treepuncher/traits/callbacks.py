@@ -36,7 +36,7 @@ class CallbacksHolder:
 			try:
 				return await cb(*args)
 			except Exception:
-				logging.exception("Exception processing callback")
+				logging.exception("Exception processing callback '%s'", cb.__name__)
 				return None
 			finally:
 				self._tasks.pop(uid)
