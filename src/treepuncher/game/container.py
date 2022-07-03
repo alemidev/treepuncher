@@ -35,6 +35,7 @@ class GameContainer(Scaffold):
 				windowId=self.window_id
 			)
 		)
+		# TODO move slots 0-36 to inventory?
 		self.window_transaction_id = 0
 		self.window_id = 0
 		self.window_title = ""
@@ -62,7 +63,7 @@ class GameContainer(Scaffold):
 			self.window_title = packet.windowTitle
 			self.window_inventory_type = packet.inventoryType
 			self.window_entity_id = packet.entityId if packet.inventoryType == "EntityHorse" and hasattr(packet, "entityId") else None
-			self.window_inventory = [None] * (packet.slotCount + 1)
+			self.window_inventory = [None] * (packet.slotCount + 36)  # add slots for player inventory
 
 		@self.on_packet(PacketSetSlot)
 		async def on_set_slot(packet:PacketSetSlot):
