@@ -50,7 +50,7 @@ class GameWorld(Scaffold):
 
 			@self.on_packet(PacketBlockChange)
 			async def block_change_cb(packet:PacketBlockChange):
-				self.world.put_block(packet.location[0], packet.location[1], packet.location[2], packet.id)
+				self.world.put_block(packet.location[0], packet.location[1], packet.location[2], packet.type)
 
 			@self.on_packet(PacketMultiBlockChange)
 			async def multi_block_change_cb(packet:PacketMultiBlockChange):
