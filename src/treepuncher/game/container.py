@@ -63,7 +63,7 @@ class GameContainer(Scaffold):
 			self.window_title = packet.windowTitle
 			self.window_inventory_type = packet.inventoryType
 			self.window_entity_id = packet.entityId if packet.inventoryType == "EntityHorse" and hasattr(packet, "entityId") else None
-			self.window_inventory = [None] * (packet.slotCount + 36)  # add slots for player inventory
+			self.window_inventory = [None] * ((packet.slotCount or 36) + 36)  # add slots for player inventory
 
 		@self.on_packet(PacketSetSlot)
 		async def on_set_slot(packet:PacketSetSlot):
