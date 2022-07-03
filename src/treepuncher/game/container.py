@@ -67,9 +67,9 @@ class GameContainer(Scaffold):
 
 		@self.on_packet(PacketSetSlot)
 		async def on_set_slot(packet:PacketSetSlot):
-			if packet.windowId < 0:
+			if packet.windowId == 0:
 				self.window_entity_id = 0
 				self.window_id = 0
 				self.window_title = ""
-			elif self.window_id > 0 and packet.windowId == self.window_id:
+			elif packet.windowId == self.window_id:
 				self.window_inventory[packet.slot] = packet.item
