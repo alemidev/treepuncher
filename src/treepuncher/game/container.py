@@ -4,6 +4,8 @@ from typing import List, Optional
 
 #from aiocraft.client import MinecraftClient
 from aiocraft.mc.definitions import Item
+from aiocraft.mc.proto.play.clientbound import PacketTransaction
+from aiocraft.mc.proto.play.serverbound import PacketTransaction as PacketTransactionServerbound
 from aiocraft.mc.proto import (
 	PacketOpenWindow, PacketCloseWindow, PacketSetSlot
 )
@@ -11,65 +13,81 @@ from aiocraft.mc.proto import (
 from ..events import JoinGameEvent, DeathEvent, ConnectedEvent, DisconnectedEvent
 from ..scaffold import Scaffold
 
+class WindowContainer:
+	id: int
+	title: str
+	type: str
+	entity_id: Optional[int]
+	transaction_id: int
+	inventory: List[Optional[Item]]
+
+	def __init__(self, id:int, title: str, type: str, entity_id:int = None, slot_count:int = 27):
+		self.id = id
+		self.title = title
+		self.type = type
+		self.entity_id = entity_id
+		self.transaction_id = 0
+		self.inventory = [ None ] * (slot_count + 36)
+
+	@property
+	def next_tid(self) -> int:
+		self.transaction_id += 1
+		if self.transaction_id > 32767:
+			self.transaction_id = -32768  # force short overflow since this is sent over the socket as a short
+		return self.transaction_id
+
 class GameContainer(Scaffold):
-	window_id : int
-	window_title : str
-	window_inventory_type : str
-	window_entity_id : Optional[int]
-	window_transaction_id : int
-	window_inventory : List[Optional[Item]]
+	window: Optional[WindowContainer]
 
 	@property
 	def is_container_open(self) -> bool:
-		return self.window_id > 0
-
-	@property
-	def next_window_tid(self) -> int:
-		self.window_transaction_id += 1
-		return self.window_transaction_id
+		return self.window is not None
 
 	async def close_container(self):
 		await self.dispatcher.write(
 			PacketCloseWindow(
 				self.dispatcher.proto,
-				windowId=self.window_id
+				windowId=self.window.id
 			)
 		)
-		# TODO move slots 0-36 to inventory?
-		self.window_transaction_id = 0
-		self.window_id = 0
-		self.window_title = ""
+		self.window = None
 
 	def __init__(self, *args, **kwargs):
 		super().__init__(*args, **kwargs)
-
-		self.window_transaction_id = 0
-		self.window_id = 0
-		self.window_title = ""
-		self.window_inventory_type = ""
-		self.window_entity_id = None
-		self.window_inventory = []
+		self.window = None
 
 		@self.on(DisconnectedEvent)
 		async def disconnected_cb(_):
-			self.window_transaction_id = 0
-			self.window_id = 0
-			self.window_title = ""
+			self.window = None
 
 		@self.on_packet(PacketOpenWindow)
 		async def on_player_open_window(packet:PacketOpenWindow):
 			assert isinstance(packet.inventoryType, str)
-			self.window_id = packet.windowId
-			self.window_title = packet.windowTitle
-			self.window_inventory_type = packet.inventoryType
-			self.window_entity_id = packet.entityId if packet.inventoryType == "EntityHorse" and hasattr(packet, "entityId") else None
-			self.window_inventory = [None] * ((packet.slotCount or 36) + 36)  # add slots for player inventory
+			window_entity_id = packet.entityId if packet.inventoryType == "EntityHorse" and hasattr(packet, "entityId") else None
+			self.window = WindowContainer(
+				packet.windowId,
+				packet.windowTitle,
+				packet.inventoryType,
+				entity_id=window_entity_id,
+				slot_count=packet.slotCount or 27
+			)
 
 		@self.on_packet(PacketSetSlot)
 		async def on_set_slot(packet:PacketSetSlot):
 			if packet.windowId == 0:
-				self.window_entity_id = 0
-				self.window_id = 0
-				self.window_title = ""
-			elif packet.windowId == self.window_id:
-				self.window_inventory[packet.slot] = packet.item
+				self.window = None
+			elif self.window and packet.windowId == self.window.id:
+				self.window.inventory[packet.slot] = packet.item
+
+		@self.on_packet(PacketTransaction)
+		async def on_transaction_denied(packet:PacketTransaction):
+			if self.window and packet.windowId == self.window.id:
+				if not packet.accepted:  # apologize to server automatically
+					await self.dispatcher.write(
+						PacketTransactionServerbound(
+							self.dispatcher.proto,
+							windowId=packet.windowId,
+							action=packet.action,
+							accepted=packet.accepted,
+						)
+					)
