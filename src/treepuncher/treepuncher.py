@@ -12,6 +12,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 from aiocraft.mc.packet import Packet
 from aiocraft.mc.auth import AuthInterface, AuthException, MojangAuthenticator, MicrosoftAuthenticator, OfflineAuthenticator
+from aiocraft.mc.auth.microsoft import InvalidStateError
 
 from .storage import Storage, SystemState, AuthenticatorState
 from .game import GameState, GameChat, GameInventory, GameTablist, GameWorld, GameContainer
@@ -210,6 +211,10 @@ class Treepuncher(
 
 		except AuthException as e:
 			self.logger.error("Auth exception : [%s|%d] %s (%s)", e.endpoint, e.code, e.data, e.kwargs)
+		except InvalidStateError as e:
+			self.logger.error("Invalid authenticator state")
+			if isinstance(self.authenticator, MicrosoftAuthenticator):
+				self.logger.info("Obtain an auth code by visiting %s", self.authenticator.url())
 		except Exception as e:
 			self.logger.exception("Unhandled exception : %s", str(e))
 
