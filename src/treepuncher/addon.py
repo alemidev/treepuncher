@@ -4,6 +4,8 @@ import logging
 from typing import TYPE_CHECKING, Dict, Any, Optional, Union, List, Callable, get_type_hints, get_args, get_origin
 from dataclasses import dataclass, MISSING, fields
 
+from treepuncher.storage import AddonStorage
+
 from .scaffold import ConfigObject
 
 if TYPE_CHECKING:
@@ -45,6 +47,7 @@ def parse_with_hint(val:str, hint:Any) -> Any:
 class Addon:
 	name: str
 	config: ConfigObject
+	storage: AddonStorage
 	logger: logging.Logger
 
 	_client: 'Treepuncher'
@@ -81,6 +84,7 @@ class Addon:
 				else:  # not really necessary since it's a dataclass but whatever
 					opts[field.name] = default
 		self.config = self.Options(**opts)
+		self.storage = client.storage.addon_storage(self.name)
 		self.logger = self._client.logger.getChild(self.name)
 		self.register()
 

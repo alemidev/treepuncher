@@ -10,8 +10,8 @@ import inspect
 from pathlib import Path
 from importlib import import_module
 import traceback
-from typing import List, Type, Set, get_type_hints
-from dataclasses import dataclass, MISSING, fields
+from typing import Type, Set, get_type_hints
+from dataclasses import MISSING, fields
 
 from setproctitle import setproctitle
 

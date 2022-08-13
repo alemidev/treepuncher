@@ -20,10 +20,30 @@ class AuthenticatorState:
 	token : Dict[str, Any]
 	legacy : bool = False
 
+class AddonStorage:
+	db: sqlite3.Connection
+	name: str
+
+	def __init__(self, db:sqlite3.Connection, name:str):
+		self.db = db
+		self.name = name
+		self.db.cursor().execute('CREATE TABLE IF NOT EXISTS documents (name TEXT PRIMARY KEY, value TEXT)')
+		self.db.commit()
+
+	# fstrings in queries are evil but if you go to this length to fuck up you kinda deserve it :)
+	def get(self, key:str) -> Optional[Any]:
+		res = self.db.cursor().execute(f"SELECT * FROM documents_{self.name} WHERE name = ?", (key,)).fetchall()
+		return json.loads(res[0][1])
+
+	def put(self, key:str, val:Any) -> None:
+		cur = self.db.cursor()
+		cur.execute("DELETE FROM documents WHERE name = ?", (key,))
+		cur.execute(f"INSERT INTO documents_{self.name} VALUES (?, ?)", (key, json.dumps(val, default=str),))
+		self.db.commit()
+
 class Storage:
 	name : str
 	db : sqlite3.Connection
-
 
 	def __init__(self, name:str):
 		self.name = name
@@ -57,6 +77,9 @@ class Storage:
 		cur.execute('INSERT INTO authenticator VALUES (?, ?, ?)', (state.date.strftime(__DATE_FORMAT__), json.dumps(state.token), state.legacy))
 		self.db.commit()
 
+	def addon_storage(self, name:str) -> AddonStorage:
+		return AddonStorage(self.db, name)
+
 	def system(self) -> Optional[SystemState]:
 		cur = self.db.cursor()
 		val = cur.execute('SELECT * FROM system').fetchall()
@@ -78,10 +101,9 @@ class Storage:
 			token=json.loads(val[0][1]),
 			legacy=val[0][2] or False
 		)
-
+	
 	def get(self, key:str) -> Optional[Any]:
-		cur = self.db.cursor()
-		val = cur.execute("SELECT * FROM documents WHERE name = ?", (key,)).fetchall()
+		val = self.db.cursor().execute("SELECT * FROM documents WHERE name = ?", (key,)).fetchall()
 		return json.loads(val[0][1]) if val else None
 
 	def put(self, key:str, val:Any) -> None:
@@ -89,4 +111,5 @@ class Storage:
 		cur.execute("DELETE FROM documents WHERE name = ?", (key,))
 		cur.execute("INSERT INTO documents VALUES (?, ?)", (key, json.dumps(val, default=str)))
 		self.db.commit()
+
 
