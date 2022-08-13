@@ -8,7 +8,7 @@ from aiocraft.mc.definitions import Player
 from aiocraft.mc.proto import PacketPlayerInfo
 
 from ..scaffold import Scaffold
-from ..events import ConnectedEvent
+from ..events import ConnectedEvent, PlayerJoinEvent, PlayerLeaveEvent
 
 class ActionType(Enum): # TODO move this in aiocraft
 	ADD_PLAYER = 0
@@ -38,6 +38,7 @@ class GameTablist(Scaffold):
 				if packet.action == ActionType.ADD_PLAYER.value:
 					record['joinTime'] = datetime.datetime.now()
 					self.tablist[uid] = Player.deserialize(record) # TODO have it be a Player type inside packet
+					self.run_callbacks(PlayerJoinEvent, PlayerJoinEvent(Player.deserialize(record)))
 				elif packet.action == ActionType.UPDATE_GAMEMODE.value:
 					self.tablist[uid].gamemode = record['gamemode']
 				elif packet.action == ActionType.UPDATE_LATENCY.value:
@@ -46,6 +47,7 @@ class GameTablist(Scaffold):
 					self.tablist[uid].displayName = record['displayName']
 				elif packet.action == ActionType.REMOVE_PLAYER.value:
 					self.tablist.pop(uid, None)
+					self.run_callbacks(PlayerLeaveEvent, PlayerLeaveEvent(Player.deserialize(record)))
 
 
 
