@@ -1,3 +1,4 @@
+from datetime import datetime
 import json
 import logging
 
@@ -84,12 +85,15 @@ class Addon:
 				else:  # not really necessary since it's a dataclass but whatever
 					opts[field.name] = default
 		self.config = self.Options(**opts)
-		self.storage = client.storage.addon_storage(self.name)
+		self.storage = self.init_storage()
 		self.logger = self._client.logger.getChild(self.name)
 		self.register()
 
 	def register(self):
 		pass
+
+	def init_storage(self) -> AddonStorage:
+		return self.client.storage.addon_storage(self.name)
 
 	async def initialize(self):
 		pass
