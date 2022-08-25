@@ -41,7 +41,7 @@ class AddonStorage:
 		cur.execute(f"INSERT INTO documents_{self.name} VALUES (?, ?)", (key, json.dumps(val, default=str),))
 		self.db.commit()
 
-class Storage:
+class StorageDriver:
 	name : str
 	db : sqlite3.Connection
 

@@ -14,7 +14,7 @@ from aiocraft.mc.packet import Packet
 from aiocraft.mc.auth import AuthInterface, AuthException, MojangAuthenticator, MicrosoftAuthenticator, OfflineAuthenticator
 from aiocraft.mc.auth.microsoft import InvalidStateError
 
-from .storage import Storage, SystemState, AuthenticatorState
+from .storage import StorageDriver, SystemState, AuthenticatorState
 from .game import GameState, GameChat, GameInventory, GameTablist, GameWorld, GameContainer
 from .addon import Addon
 from .notifier import Notifier, Provider
@@ -37,7 +37,7 @@ class Treepuncher(
 	GameWorld
 ):
 	name: str
-	storage: Storage
+	storage: StorageDriver
 
 	notifier: Notifier
 	scheduler: AsyncIOScheduler
@@ -99,7 +99,7 @@ class Treepuncher(
 			resolve_srv=opt('resolve_srv', default=True, t=bool),
 		)
 
-		self.storage = Storage(opt('session_file') or f"data/{name}.session")  # TODO wrap with pathlib
+		self.storage = StorageDriver(opt('session_file') or f"data/{name}.session")  # TODO wrap with pathlib
 
 		self.notifier = Notifier(self)
 
@@ -130,13 +130,22 @@ class Treepuncher(
 		return self.authenticator.selectedProfile.name
 
 	async def authenticate(self):
-		await super().authenticate()
-		state = AuthenticatorState(
-			date=datetime.datetime.now(),
-			token=self.authenticator.serialize(),
-			legacy=isinstance(self.authenticator, MojangAuthenticator)
-		)
-		self.storage._set_auth(state)
+		sleep_interval = self.cfg.getfloat("auth_retry_interval", fallback=60.0)
+		for _ in range(self.cfg.getint("auth_retry_count", fallback=5)):
+			try:
+				await super().authenticate()
+				state = AuthenticatorState(
+					date=datetime.datetime.now(),
+					token=self.authenticator.serialize(),
+					legacy=isinstance(self.authenticator, MojangAuthenticator)
+				)
+				self.storage._set_auth(state)
+				return
+			except AuthException as e:
+				if e.data["error"] == "request timed out":
+					await asyncio.sleep(sleep_interval)
+					continue
+				raise e  # retrying won't help anyway
 
 	async def start(self):
 		# if self.started: # TODO readd check
