@@ -34,7 +34,7 @@ class AddonStorage:
 	# fstrings in queries are evil but if you go to this length to fuck up you kinda deserve it :)
 	def get(self, key:str) -> Optional[Any]:
 		res = self.db.cursor().execute(f"SELECT * FROM documents_{self.name} WHERE name = ?", (key,)).fetchall()
-		return json.loads(res[0][1])
+		return json.loads(res[0][1]) if res else None
 
 	def put(self, key:str, val:Any) -> None:
 		cur = self.db.cursor()
