@@ -21,13 +21,14 @@ class AuthenticatorState:
 	legacy : bool = False
 
 class AddonStorage:
+	# TODO this uses py formatting in SQL queries, can we avoid it?
 	db: sqlite3.Connection
 	name: str
 
 	def __init__(self, db:sqlite3.Connection, name:str):
 		self.db = db
 		self.name = name
-		self.db.cursor().execute('CREATE TABLE IF NOT EXISTS documents (name TEXT PRIMARY KEY, value TEXT)')
+		self.db.cursor().execute(f'CREATE TABLE IF NOT EXISTS documents_{self.name} (name TEXT PRIMARY KEY, value TEXT)')
 		self.db.commit()
 
 	# fstrings in queries are evil but if you go to this length to fuck up you kinda deserve it :)
