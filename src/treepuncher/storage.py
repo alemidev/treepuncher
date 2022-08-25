@@ -38,7 +38,7 @@ class AddonStorage:
 
 	def put(self, key:str, val:Any) -> None:
 		cur = self.db.cursor()
-		cur.execute("DELETE FROM documents WHERE name = ?", (key,))
+		cur.execute(f"DELETE FROM documents_{self.name} WHERE name = ?", (key,))
 		cur.execute(f"INSERT INTO documents_{self.name} VALUES (?, ?)", (key, json.dumps(val, default=str),))
 		self.db.commit()
 
