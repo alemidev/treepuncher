@@ -7,7 +7,7 @@ from aiocraft.mc.proto import (
 	PacketRespawn, PacketLogin, PacketUpdateHealth, PacketExperience, PacketSettings, PacketClientCommand, PacketAbilities
 )
 
-from ..events import JoinGameEvent, DeathEvent, ConnectedEvent, DisconnectedEvent
+from ..events import JoinGameEvent, DeathEvent, DisconnectedEvent
 from ..scaffold import Scaffold
 
 class GameState(Scaffold):
@@ -55,8 +55,11 @@ class GameState(Scaffold):
 		@self.on_packet(PacketRespawn)
 		async def on_player_respawning(packet:PacketRespawn):
 			self.gamemode = Gamemode(packet.gamemode)
-			self.dimension = Dimension(packet.dimension)
-			self.difficulty = Difficulty(packet.difficulty)
+			if isinstance(packet.dimension, dict):
+				self.dimension = Dimension.OVERWORLD # TODO wtf???
+			else:
+				self.dimension = Dimension(packet.dimension)
+				self.difficulty = Difficulty(packet.difficulty)
 			if self.difficulty != Difficulty.PEACEFUL \
 			and self.gamemode != Gamemode.SPECTATOR:
 				self.in_game = True
@@ -72,8 +75,11 @@ class GameState(Scaffold):
 		@self.on_packet(PacketLogin)
 		async def player_joining_cb(packet:PacketLogin):
 			self.gamemode = Gamemode(packet.gameMode)
-			self.dimension = Dimension(packet.dimension)
-			self.difficulty = Difficulty(packet.difficulty)
+			if isinstance(packet.dimension, dict):
+				self.dimension = Dimension.OVERWORLD # TODO wtf???
+			else:
+				self.dimension = Dimension(packet.dimension)
+				self.difficulty = Difficulty(packet.difficulty)
 			self.join_time = datetime.datetime.now()
 			if self.difficulty != Difficulty.PEACEFUL \
 			and self.gamemode != Gamemode.SPECTATOR:
