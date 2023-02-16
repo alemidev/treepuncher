@@ -95,7 +95,7 @@ def main():
 	try:
 		client = Treepuncher(
 			args.name,
-			args.server,
+			server=args.server,
 			online_mode=not args.offline,
 			legacy=args.mojang,
 			use_packet_whitelist=args.use_packet_whitelist,
