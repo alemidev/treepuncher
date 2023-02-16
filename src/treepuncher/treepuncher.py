@@ -79,7 +79,9 @@ class Treepuncher(
 		elif opt('legacy', default=False, t=bool):
 			authenticator = MojangAuthenticator(
 				username= opt('username', default=name, required=True),
-				password= opt('password') 
+				password= opt('password'),
+				session_server_override= opt('session_server_override'),
+				auth_server_override= opt('auth_server_override'),
 			)
 			if opt('legacy_token'):
 				authenticator.deserialize(json.loads(opt('legacy_token')))
