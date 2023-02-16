@@ -51,7 +51,7 @@ class Scaffold(
 				self.dispatcher.set_compression(packet.threshold)
 			elif isinstance(packet, PacketKeepAlive):
 				if self.cfg.getboolean("send_keep_alive", fallback=True):
-					keep_alive_packet = PacketKeepAliveResponse(340, keepAliveId=packet.keepAliveId)
+					keep_alive_packet = PacketKeepAliveResponse(self.dispatcher._proto, keepAliveId=packet.keepAliveId)
 					await self.dispatcher.write(keep_alive_packet)
 			elif isinstance(packet, PacketKickDisconnect):
 				self.logger.error("Kicked while in game : %s", helpers.parse_chat(packet.reason))
