@@ -23,6 +23,7 @@ class Scaffold(
 	Runnable,
 	MinecraftClient,
 ):
+	entity_id : int
 
 	config: ConfigParser
 

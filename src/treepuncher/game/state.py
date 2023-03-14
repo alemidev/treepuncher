@@ -74,6 +74,7 @@ class GameState(Scaffold):
 
 		@self.on_packet(PacketLogin)
 		async def player_joining_cb(packet:PacketLogin):
+			self.entity_id = packet.entityId
 			self.gamemode = Gamemode(packet.gameMode)
 			if isinstance(packet.dimension, dict):
 				self.dimension = Dimension.OVERWORLD # TODO wtf???
