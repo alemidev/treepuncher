@@ -66,6 +66,7 @@ class GameWorld(Scaffold):
 				self.position.x, self.position.y, self.position.z
 			)
 			if time() - self._last_steer_vehicle >= 5:
+				self._last_steer_vehicle = time()
 				await self.dispatcher.write(
 					PacketSteerVehicle(
 						self.dispatcher.proto,
