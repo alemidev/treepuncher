@@ -1,5 +1,6 @@
 import json
 
+from time import time
 from typing import Optional
 
 from aiocraft.mc.definitions import BlockPos
@@ -7,7 +8,7 @@ from aiocraft.mc.proto.play.clientbound import (
 	PacketPosition, PacketMapChunk, PacketBlockChange, PacketMultiBlockChange, PacketSetPassengers,
 	PacketEntityTeleport, PacketRelEntityMove
 )
-from aiocraft.mc.proto.play.serverbound import PacketTeleportConfirm
+from aiocraft.mc.proto.play.serverbound import PacketTeleportConfirm, PacketSteerVehicle
 from aiocraft import Chunk, World  # TODO these imports will hopefully change!
 
 from ..scaffold import Scaffold
@@ -60,6 +61,19 @@ class GameWorld(Scaffold):
 			self.logger.info(
 				"Position synchronized : (x:%.0f,y:%.0f,z:%.0f) (relMove vehicle)",
 				self.position.x, self.position.y, self.position.z
+			)
+
+		@self.scheduler.scheduled_job('interval', seconds=5, name='send steer vehicle if riding a vehicle')
+		async def steer_vehicle_cb():
+			if self.vehicle_id is None:
+				return
+			await self.dispatcher.write(
+				PacketSteerVehicle(
+					self.dispatcher.proto,
+					forward=0,
+					sideways=0,
+					jump=0
+				)
 			)
 
 		@self.on_packet(PacketPosition)
