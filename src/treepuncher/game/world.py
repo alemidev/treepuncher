@@ -18,11 +18,14 @@ class GameWorld(Scaffold):
 	vehicle_id : Optional[int]
 	world : World
 
+	_last_steer_vehicle : float
+
 	def __init__(self, *args, **kwargs):
 		super().__init__(*args, **kwargs)
 
 		self.position = BlockPos(0, 0, 0)
 		self.vehicle_id = None
+		self._last_steer_vehicle = time()
 
 		@self.on_packet(PacketSetPassengers)
 		async def player_enters_vehicle_cb(packet:PacketSetPassengers):
@@ -58,23 +61,19 @@ class GameWorld(Scaffold):
 				self.position.y + packet.dY,
 				self.position.z + packet.dZ
 			)
-			self.logger.info(
+			self.logger.debug(
 				"Position synchronized : (x:%.0f,y:%.0f,z:%.0f) (relMove vehicle)",
 				self.position.x, self.position.y, self.position.z
 			)
-
-		@self.scheduler.scheduled_job('interval', seconds=5, name='send steer vehicle if riding a vehicle')
-		async def steer_vehicle_cb():
-			if self.vehicle_id is None:
-				return
-			await self.dispatcher.write(
-				PacketSteerVehicle(
-					self.dispatcher.proto,
-					forward=0,
-					sideways=0,
-					jump=0
+			if time() - self._last_steer_vehicle >= 5:
+				await self.dispatcher.write(
+					PacketSteerVehicle(
+						self.dispatcher.proto,
+						forward=0,
+						sideways=0,
+						jump=0
+					)
 				)
-			)
 
 		@self.on_packet(PacketPosition)
 		async def player_rubberband_cb(packet:PacketPosition):
