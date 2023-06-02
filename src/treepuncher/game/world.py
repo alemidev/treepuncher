@@ -33,7 +33,7 @@ class GameWorld(Scaffold):
 		async def block_change_cb(packet:PacketBlockChange):
 			self.world.put_block(packet.location[0], packet.location[1], packet.location[2], packet.type)
 			pos = BlockPos(packet.location[0], packet.location[1], packet.location[2])
-			await self.run_callbacks(BlockUpdateEvent, BlockUpdateEvent(pos, packet.type))
+			self.run_callbacks(BlockUpdateEvent, BlockUpdateEvent(pos, packet.type))
 
 		@self.on_packet(PacketMultiBlockChange)
 		async def multi_block_change_cb(packet:PacketMultiBlockChange):
@@ -45,7 +45,7 @@ class GameWorld(Scaffold):
 					z_off = entry['horizontalPos'] & 15
 					pos = BlockPos(x_off + chunk_x_off, entry['y'], z_off + chunk_z_off)
 					self.world.put_block(pos.x,pos.y, pos.z, entry['blockId'])
-					await self.run_callbacks(BlockUpdateEvent, BlockUpdateEvent(pos, entry['blockId']))
+					self.run_callbacks(BlockUpdateEvent, BlockUpdateEvent(pos, entry['blockId']))
 			elif self.dispatcher.proto < 760:
 				x = twos_comp((packet.chunkCoordinates >> 42) & 0x3FFFFF, 22)
 				z = twos_comp((packet.chunkCoordinates >> 20) & 0x3FFFFF, 22)
@@ -57,6 +57,6 @@ class GameWorld(Scaffold):
 					dy = ((loc & 0x0FFF)      ) & 0x0F
 					pos = BlockPos(16*x + dx, 16*y + dy, 16*z + dz)
 					self.world.put_block(pos.x, pos.y, pos.z, state)
-					await self.run_callbacks(BlockUpdateEvent, BlockUpdateEvent(pos, state))
+					self.run_callbacks(BlockUpdateEvent, BlockUpdateEvent(pos, state))
 			else:
 				self.logger.error("Cannot process MultiBlockChange for protocol %d", self.dispatcher.proto)
