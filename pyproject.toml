@@ -1,7 +1,30 @@
 [build-system]
-requires = [
-	"setuptools>=42",
-	"wheel"
-]
+requires = ["setuptools", "setuptools-scm"]
 build-backend = "setuptools.build_meta"
 
+[project]
+name = "treepuncher"
+authors = [
+    {name = "alemi", email = "me@alemi.dev"},
+]
+description = "An hackable Minecraft client, built with aiocraft"
+readme = "README.md"
+requires-python = ">=3.7"
+keywords = ["minecraft", "client", "bot", "hackable"]
+# license = {text = "MIT"}
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "setproctitle",
+    "termcolor",
+    "apscheduler",
+    "aioconsole",
+    "aiocraft",
+]
+dynamic = ["version"]
+
+[tool.setuptools_scm]
+write_to = "src/treepuncher/__version__.py"

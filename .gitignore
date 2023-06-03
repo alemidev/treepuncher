@@ -127,3 +127,6 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# Auto generated version file
+src/treepuncher/__version__.py
