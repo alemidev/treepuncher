@@ -90,25 +90,33 @@ class GameWorld(Scaffold):
 				)
 			)
 
-		if self.cfg.getboolean("process_world", fallback=False):
-			self.world = World()
+		if not self.cfg.getboolean("process_world", fallback=False):
+			return
 
-			@self.on_packet(PacketMapChunk)
-			async def map_chunk_cb(packet:PacketMapChunk):
-				assert isinstance(packet.bitMap, int)
-				c = Chunk(packet.x, packet.z, packet.bitMap, packet.groundUp, json.dumps(packet.blockEntities))  # TODO a solution which is not jank!
-				c.read(packet.chunkData)
-				self.world.put(c, packet.x, packet.z, not packet.groundUp)
+		self.world = World()
 
-			@self.on_packet(PacketBlockChange)
-			async def block_change_cb(packet:PacketBlockChange):
-				self.world.put_block(packet.location[0], packet.location[1], packet.location[2], packet.type)
+		@self.on_packet(PacketMapChunk)
+		async def map_chunk_cb(packet:PacketMapChunk):
+			assert isinstance(packet.bitMap, int)
+			c = Chunk(packet.x, packet.z, packet.bitMap, packet.groundUp, json.dumps(packet.blockEntities))  # TODO a solution which is not jank!
+			c.read(packet.chunkData)
+			self.world.put(c, packet.x, packet.z, not packet.groundUp)
 
-			@self.on_packet(PacketMultiBlockChange)
-			async def multi_block_change_cb(packet:PacketMultiBlockChange):
+		@self.on_packet(PacketBlockChange)
+		async def block_change_cb(packet:PacketBlockChange):
+			self.world.put_block(packet.location[0], packet.location[1], packet.location[2], packet.type)
+
+		@self.on_packet(PacketMultiBlockChange)
+		async def multi_block_change_cb(packet:PacketMultiBlockChange):
+			return # holy shit this is LAME!
+			if hasattr(packet, "chunkCoordinates"):
+				chunk_x_off = (packet.chunkCoordinates & 0b1111111111111111111111) * 16
+				chunk_z_off = ((packet.chunkCoordinates >> 22) & 0b1111111111111111111111) * 16
+				chunk_y_off = ((packet.chunkCoordinates >> 44) & 0b11111111111111111111) * 16
+			else:
 				chunk_x_off = packet.chunkX * 16
 				chunk_z_off = packet.chunkZ * 16
-				for entry in packet.records:
-					x_off = (entry['horizontalPos'] >> 4 ) & 15
-					z_off = entry['horizontalPos'] & 15
-					self.world.put_block(x_off + chunk_x_off, entry['y'], z_off + chunk_z_off, entry['blockId'])
+			for entry in packet.records:
+				x_off = (entry['horizontalPos'] >> 4 ) & 15
+				z_off = entry['horizontalPos'] & 15
+				self.world.put_block(x_off + chunk_x_off, entry['y'], z_off + chunk_z_off, entry['blockId'])
