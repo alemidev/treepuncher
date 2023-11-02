@@ -93,7 +93,7 @@ class GameWorld(Scaffold):
 			)
 
 		# Since this might require more resources, allow to disable it
-		if not self.cfg.getboolean("process_world", fallback=True):
+		if not self.cfg.getboolean("process_world", fallback=False):
 			return
 
 		@self.on_packet(PacketMapChunk)
