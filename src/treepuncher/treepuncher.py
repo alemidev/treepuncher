@@ -34,7 +34,8 @@ class Treepuncher(
 	GameInventory,
 	GameContainer,
 	GameTablist,
-	GameWorld
+	GameWorld,
+	# GameMovement
 ):
 	name: str
 	storage: StorageDriver
@@ -49,7 +50,7 @@ class Treepuncher(
 	def __init__(
 		self,
 		name: str,
-		config_file: str = None,
+		config_file: str = "",
 		**kwargs
 	):
 		self.ctx = dict()

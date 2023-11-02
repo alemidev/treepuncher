@@ -4,7 +4,7 @@ from typing import Dict
 
 from termcolor import colored
 
-def configure_logging(name:str, level=logging.INFO, color:bool = True):
+def configure_logging(name:str, level=logging.INFO, color:bool = True, path:str = "log"):
 	import os
 	from logging.handlers import RotatingFileHandler
 
@@ -27,7 +27,9 @@ def configure_logging(name:str, level=logging.INFO, color:bool = True):
 	logger = logging.getLogger()
 	logger.setLevel(level)
 	# create file handler which logs even debug messages
-	fh = RotatingFileHandler(f'log/{name}.log', maxBytes=1048576, backupCount=5) # 1MB files
+	if not os.path.isdir(path):
+		os.mkdir(path)
+	fh = RotatingFileHandler(f'{path}/{name}.log', maxBytes=1048576, backupCount=5) # 1MB files
 	fh.setLevel(logging.DEBUG)
 	# create console handler with a higher log level
 	ch = logging.StreamHandler()
