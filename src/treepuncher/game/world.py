@@ -23,6 +23,7 @@ class GameWorld(Scaffold):
 	def __init__(self, *args, **kwargs):
 		super().__init__(*args, **kwargs)
 
+		self.world = World()
 		self.position = BlockPos(0, 0, 0)
 		self.vehicle_id = None
 		self._last_steer_vehicle = time()
