@@ -1,21 +1,21 @@
 import json
-
 from time import time
-from typing import Optional
 
 from aiocraft.mc.definitions import BlockPos
-from aiocraft.mc.proto.play.clientbound import (
-	PacketPosition, PacketMapChunk, PacketBlockChange, PacketMultiBlockChange, PacketSetPassengers,
-	PacketEntityTeleport, PacketRelEntityMove
+from aiocraft.mc.proto import (
+	PacketMapChunk, PacketBlockChange, PacketMultiBlockChange, PacketSetPassengers, PacketEntityTeleport,
+	PacketSteerVehicle, PacketRelEntityMove, PacketTeleportConfirm, PacketPosition
 )
-from aiocraft.mc.proto.play.serverbound import PacketTeleportConfirm, PacketSteerVehicle
+from aiocraft.mc.types import twos_comp
+
 from aiocraft import Chunk, World  # TODO these imports will hopefully change!
 
 from ..scaffold import Scaffold
+from ..events import BlockUpdateEvent
 
 class GameWorld(Scaffold):
 	position : BlockPos
-	vehicle_id : Optional[int]
+	vehicle_id : int | None
 	world : World
 
 	_last_steer_vehicle : float
@@ -90,10 +90,9 @@ class GameWorld(Scaffold):
 				)
 			)
 
-		if not self.cfg.getboolean("process_world", fallback=False):
+		# Since this might require more resources, allow to disable it
+		if not self.cfg.getboolean("process_world", fallback=True):
 			return
-
-		self.world = World()
 
 		@self.on_packet(PacketMapChunk)
 		async def map_chunk_cb(packet:PacketMapChunk):
@@ -105,18 +104,31 @@ class GameWorld(Scaffold):
 		@self.on_packet(PacketBlockChange)
 		async def block_change_cb(packet:PacketBlockChange):
 			self.world.put_block(packet.location[0], packet.location[1], packet.location[2], packet.type)
+			pos = BlockPos(packet.location[0], packet.location[1], packet.location[2])
+			self.run_callbacks(BlockUpdateEvent, BlockUpdateEvent(pos, packet.type))
 
 		@self.on_packet(PacketMultiBlockChange)
 		async def multi_block_change_cb(packet:PacketMultiBlockChange):
-			return # holy shit this is LAME!
-			if hasattr(packet, "chunkCoordinates"):
-				chunk_x_off = (packet.chunkCoordinates & 0b1111111111111111111111) * 16
-				chunk_z_off = ((packet.chunkCoordinates >> 22) & 0b1111111111111111111111) * 16
-				chunk_y_off = ((packet.chunkCoordinates >> 44) & 0b11111111111111111111) * 16
-			else:
+			if self.dispatcher.proto < 751:
 				chunk_x_off = packet.chunkX * 16
 				chunk_z_off = packet.chunkZ * 16
-			for entry in packet.records:
-				x_off = (entry['horizontalPos'] >> 4 ) & 15
-				z_off = entry['horizontalPos'] & 15
-				self.world.put_block(x_off + chunk_x_off, entry['y'], z_off + chunk_z_off, entry['blockId'])
+				for entry in packet.records:
+					x_off = (entry['horizontalPos'] >> 4 ) & 15
+					z_off = entry['horizontalPos'] & 15
+					pos = BlockPos(x_off + chunk_x_off, entry['y'], z_off + chunk_z_off)
+					self.world.put_block(pos.x,pos.y, pos.z, entry['blockId'])
+					self.run_callbacks(BlockUpdateEvent, BlockUpdateEvent(pos, entry['blockId']))
+			elif self.dispatcher.proto < 760:
+				x = twos_comp((packet.chunkCoordinates >> 42) & 0x3FFFFF, 22)
+				z = twos_comp((packet.chunkCoordinates >> 20) & 0x3FFFFF, 22)
+				y = twos_comp((packet.chunkCoordinates      ) & 0xFFFFF , 20)
+				for loc in packet.records:
+					state = loc >> 12
+					dx = ((loc & 0x0FFF) >> 8 ) & 0x0F
+					dz = ((loc & 0x0FFF) >> 4 ) & 0x0F
+					dy = ((loc & 0x0FFF)      ) & 0x0F
+					pos = BlockPos(16*x + dx, 16*y + dy, 16*z + dz)
+					self.world.put_block(pos.x, pos.y, pos.z, state)
+					self.run_callbacks(BlockUpdateEvent, BlockUpdateEvent(pos, state))
+			else:
+				self.logger.error("Cannot process MultiBlockChange for protocol %d", self.dispatcher.proto)

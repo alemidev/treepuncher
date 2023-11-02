@@ -15,7 +15,7 @@ from aiocraft.mc.auth import AuthInterface, AuthException, MojangAuthenticator, 
 from aiocraft.mc.auth.microsoft import InvalidStateError
 
 from .storage import StorageDriver, SystemState, AuthenticatorState
-from .game import GameState, GameChat, GameInventory, GameTablist, GameWorld, GameContainer
+from .game import GameState, GameChat, GameInventory, GameTablist, GameWorld, GameContainer, GamePosition
 from .addon import Addon
 from .notifier import Notifier, Provider
 
@@ -223,7 +223,7 @@ class Treepuncher(
 
 		except AuthException as e:
 			self.logger.error("Auth exception : [%s|%d] %s (%s)", e.endpoint, e.code, e.data, e.kwargs)
-		except InvalidStateError as e:
+		except InvalidStateError:
 			self.logger.error("Invalid authenticator state")
 			if isinstance(self.authenticator, MicrosoftAuthenticator):
 				self.logger.info("Obtain an auth code by visiting %s", self.authenticator.url())

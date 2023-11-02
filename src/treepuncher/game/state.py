@@ -1,10 +1,12 @@
 import asyncio
 import datetime
+import json
 
 #from aiocraft.client import MinecraftClient
 from aiocraft.mc.definitions import Gamemode, Dimension, Difficulty
 from aiocraft.mc.proto import (
-	PacketRespawn, PacketLogin, PacketUpdateHealth, PacketExperience, PacketSettings, PacketClientCommand, PacketAbilities
+	PacketRespawn, PacketLogin, PacketUpdateHealth, PacketExperience, PacketSettings,
+	PacketClientCommand, PacketAbilities, PacketDifficulty
 )
 
 from ..events import JoinGameEvent, DeathEvent, DisconnectedEvent
@@ -37,9 +39,9 @@ class GameState(Scaffold):
 		super().__init__(*args, **kwargs)
 
 		self.in_game = False
-		self.gamemode = Gamemode.SURVIVAL
-		self.dimension = Dimension.OVERWORLD
-		self.difficulty = Difficulty.HARD
+		self.gamemode = Gamemode.UNKNOWN
+		self.dimension = Dimension.UNKNOWN
+		self.difficulty = Difficulty.UNKNOWN
 		self.join_time = datetime.datetime(2011, 11, 18)
 
 		self.hp = 20.0
@@ -56,7 +58,8 @@ class GameState(Scaffold):
 		async def on_player_respawning(packet:PacketRespawn):
 			self.gamemode = Gamemode(packet.gamemode)
 			if isinstance(packet.dimension, dict):
-				self.dimension = Dimension.OVERWORLD # TODO wtf???
+				self.logger.info("Received dimension data: %s", json.dumps(packet.dimensionCodec, indent=2))
+				self.dimension = Dimension.from_str(packet.dimension['effects'])
 			else:
 				self.dimension = Dimension(packet.dimension)
 				self.difficulty = Difficulty(packet.difficulty)
@@ -72,12 +75,19 @@ class GameState(Scaffold):
 				self.gamemode.name
 			)
 
+		@self.on_packet(PacketDifficulty)
+		async def on_set_difficulty(packet:PacketDifficulty):
+			self.difficulty = Difficulty(packet.difficulty)
+			self.logger.info("Difficulty set to %s", self.difficulty.name)
+
 		@self.on_packet(PacketLogin)
 		async def player_joining_cb(packet:PacketLogin):
 			self.entity_id = packet.entityId
 			self.gamemode = Gamemode(packet.gameMode)
 			if isinstance(packet.dimension, dict):
-				self.dimension = Dimension.OVERWORLD # TODO wtf???
+				with open('world_codec.json', 'w') as f:
+					json.dump(packet.dimensionCodec, f)
+				self.dimension = Dimension.from_str(packet.dimension['effects'])
 			else:
 				self.dimension = Dimension(packet.dimension)
 				self.difficulty = Difficulty(packet.difficulty)
