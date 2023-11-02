@@ -4,8 +4,9 @@ from time import time
 from aiocraft.mc.definitions import BlockPos
 from aiocraft.mc.proto import (
 	PacketMapChunk, PacketBlockChange, PacketMultiBlockChange, PacketSetPassengers, PacketEntityTeleport,
-	PacketSteerVehicle, PacketRelEntityMove, PacketTeleportConfirm, PacketPosition
+	PacketSteerVehicle, PacketRelEntityMove, PacketTeleportConfirm
 )
+from aiocraft.mc.proto.play.clientbound import PacketPosition
 from aiocraft.mc.types import twos_comp
 
 from aiocraft import Chunk, World  # TODO these imports will hopefully change!
