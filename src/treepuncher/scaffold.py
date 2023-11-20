@@ -2,13 +2,13 @@ from configparser import ConfigParser, SectionProxy
 
 from typing import Type, Any
 
-from aiocraft.client import MinecraftClient
+from aiocraft.client import AbstractMinecraftClient
 from aiocraft.util import helpers
-from aiocraft.mc.packet import Packet
-from aiocraft.mc.definitions import ConnectionState
-from aiocraft.mc.proto import PacketKickDisconnect, PacketSetCompression
-from aiocraft.mc.proto.play.clientbound import PacketKeepAlive
-from aiocraft.mc.proto.play.serverbound import PacketKeepAlive as PacketKeepAliveResponse
+from aiocraft.packet import Packet
+from aiocraft.types import ConnectionState
+from aiocraft.proto import PacketKickDisconnect, PacketSetCompression
+from aiocraft.proto.play.clientbound import PacketKeepAlive
+from aiocraft.proto.play.serverbound import PacketKeepAlive as PacketKeepAliveResponse
 
 from .traits import CallbacksHolder, Runnable
 from .events import ConnectedEvent, DisconnectedEvent
@@ -21,7 +21,7 @@ class ConfigObject:
 class Scaffold(
 	CallbacksHolder,
 	Runnable,
-	MinecraftClient,
+	AbstractMinecraftClient,
 ):
 	entity_id : int
 
@@ -43,16 +43,17 @@ class Scaffold(
 
 	#Override
 	async def _play(self) -> bool:
-		self.dispatcher.set_state(ConnectionState.PLAY)
+		assert self.dispatcher is not None
+		self.dispatcher.promote(ConnectionState.PLAY)
 		self.run_callbacks(ConnectedEvent, ConnectedEvent())
 		async for packet in self.dispatcher.packets():
 			self.logger.debug("[ * ] Processing %s", packet.__class__.__name__)
 			if isinstance(packet, PacketSetCompression):
 				self.logger.info("Compression updated")
-				self.dispatcher.set_compression(packet.threshold)
+				self.dispatcher.update_compression_threshold(packet.threshold)
 			elif isinstance(packet, PacketKeepAlive):
 				if self.cfg.getboolean("send_keep_alive", fallback=True):
-					keep_alive_packet = PacketKeepAliveResponse(self.dispatcher._proto, keepAliveId=packet.keepAliveId)
+					keep_alive_packet = PacketKeepAliveResponse(keepAliveId=packet.keepAliveId)
 					await self.dispatcher.write(keep_alive_packet)
 			elif isinstance(packet, PacketKickDisconnect):
 				self.logger.error("Kicked while in game : %s", helpers.parse_chat(packet.reason))

@@ -2,10 +2,9 @@ import uuid
 import datetime
 
 from enum import Enum
-from typing import Dict, List
 
-from aiocraft.mc.definitions import Player
-from aiocraft.mc.proto import PacketPlayerInfo
+from aiocraft.types import Player
+from aiocraft.proto import PacketPlayerInfo
 
 from ..scaffold import Scaffold
 from ..events import ConnectedEvent, PlayerJoinEvent, PlayerLeaveEvent
@@ -18,7 +17,7 @@ class ActionType(Enum): # TODO move this in aiocraft
 	REMOVE_PLAYER = 4
 
 class GameTablist(Scaffold):
-	tablist : Dict[uuid.UUID, Player]
+	tablist : dict[uuid.UUID, Player]
 
 	def __init__(self, *args, **kwargs):
 		super().__init__(*args, **kwargs)

@@ -4,18 +4,18 @@ import asyncio
 import datetime
 import pkg_resources
 
-from typing import List, Dict, Any, Type, Optional
+from typing import Any, Type
 from time import time
 from configparser import ConfigParser
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
-from aiocraft.mc.packet import Packet
-from aiocraft.mc.auth import AuthInterface, AuthException, MojangAuthenticator, MicrosoftAuthenticator, OfflineAuthenticator
-from aiocraft.mc.auth.microsoft import InvalidStateError
+from aiocraft.packet import Packet
+from aiocraft.auth import AuthInterface, AuthException, MojangAuthenticator, MicrosoftAuthenticator, OfflineAuthenticator
+from aiocraft.auth.microsoft import InvalidStateError
 
 from .storage import StorageDriver, SystemState, AuthenticatorState
-from .game import GameState, GameChat, GameInventory, GameTablist, GameWorld, GameContainer, GamePosition
+from .game import GameState, GameChat, GameInventory, GameTablist, GameWorld, GameContainer
 from .addon import Addon
 from .notifier import Notifier, Provider
 
@@ -42,10 +42,13 @@ class Treepuncher(
 
 	notifier: Notifier
 	scheduler: AsyncIOScheduler
-	modules: List[Addon]
-	ctx: Dict[Any, Any]
+	modules: list[Addon]
+	ctx: dict[Any, Any]
 
 	_processing: bool
+	_proto_override: int
+	_host: str
+	_port: int
 
 	def __init__(
 		self,
@@ -61,7 +64,7 @@ class Treepuncher(
 
 		authenticator : AuthInterface
 
-		def opt(k:str, required=False, default=None, t:type=str) -> Optional[Any]:
+		def opt(k, required=False, default=None, t=str):
 			v = kwargs.get(k)
 			if v is None:
 				v = self.cfg.get(k)
@@ -95,12 +98,18 @@ class Treepuncher(
 			)
 
 		super().__init__(
-			opt('server', required=True),
 			authenticator=authenticator,
 			online_mode=opt('online_mode', default=True, t=bool),
-			force_port=opt('force_port', default=0, t=int),
-			resolve_srv=opt('resolve_srv', default=True, t=bool),
 		)
+
+		self._proto_override = opt('force_proto', t=int)
+		self._host = opt('server', required=True)
+		if ":" in self._host:
+			h, p = self._host.split(":", 1)
+			self._host = h
+			self._port = int(p)
+		else:
+			self._host, self._port = self.resolve_srv(self._host)
 
 		self.storage = StorageDriver(opt('session_file') or f"data/{name}.session")  # TODO wrap with pathlib
 
@@ -199,22 +208,21 @@ class Treepuncher(
 	async def _work(self):
 		self.logger.debug("Worker started")
 		try:
-			if "force_proto" in self.cfg:
-				self.dispatcher.set_proto(self.cfg.getint('force_proto'))
+			log_ignored_packets = self.cfg.getboolean('log_ignored_packets', fallback=False)
+			whitelist = self.callback_keys(filter=Packet)
+			if self._proto_override:
+				proto = self._proto_override
 			else:
 				try:
-					server_data = await self.info()
+					server_data = await self.info(self._host, self._port, whitelist=whitelist, log_ignored_packets=log_ignored_packets)
 					if "version" in server_data and "protocol" in server_data["version"]:
-						self.dispatcher.set_proto(server_data['version']['protocol'])
+						proto = server_data['version']['protocol']
 				except OSError as e:
 					self.logger.error("Connection error : %s", str(e))
 
-			self.dispatcher.whitelist(self.callback_keys(filter=Packet))
-			self.dispatcher.log_ignored_packets(self.cfg.getboolean('log_ignored_packets', fallback=False))
-
 			while self._processing:
 				try:
-					await self.join()
+					await self.join(self._host, self._port, proto, whitelist=whitelist, log_ignored_packets=log_ignored_packets)
 				except OSError as e:
 					self.logger.error("Connection error : %s", str(e))
 

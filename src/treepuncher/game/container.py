@@ -1,27 +1,22 @@
-import asyncio
-import datetime
-from typing import List, Optional
-
-#from aiocraft.client import MinecraftClient
-from aiocraft.mc.definitions import Item
-from aiocraft.mc.proto.play.clientbound import PacketTransaction
-from aiocraft.mc.proto.play.serverbound import PacketTransaction as PacketTransactionServerbound
-from aiocraft.mc.proto import (
+from aiocraft.types import Item
+from aiocraft.proto.play.clientbound import PacketTransaction
+from aiocraft.proto.play.serverbound import PacketTransaction as PacketTransactionServerbound
+from aiocraft.proto import (
 	PacketOpenWindow, PacketCloseWindow, PacketSetSlot
 )
 
-from ..events import JoinGameEvent, DeathEvent, ConnectedEvent, DisconnectedEvent
+from ..events import DisconnectedEvent
 from ..scaffold import Scaffold
 
 class WindowContainer:
 	id: int
 	title: str
 	type: str
-	entity_id: Optional[int]
+	entity_id: int | None
 	transaction_id: int
-	inventory: List[Optional[Item]]
+	inventory: list[Item | None]
 
-	def __init__(self, id:int, title: str, type: str, entity_id:int = None, slot_count:int = 27):
+	def __init__(self, id:int, title: str, type: str, entity_id:int | None = None, slot_count:int = 27):
 		self.id = id
 		self.title = title
 		self.type = type
@@ -37,7 +32,7 @@ class WindowContainer:
 		return self.transaction_id
 
 class GameContainer(Scaffold):
-	window: Optional[WindowContainer]
+	window: WindowContainer | None
 
 	@property
 	def is_container_open(self) -> bool:
@@ -85,7 +80,6 @@ class GameContainer(Scaffold):
 				if not packet.accepted:  # apologize to server automatically
 					await self.dispatcher.write(
 						PacketTransactionServerbound(
-							self.dispatcher.proto,
 							windowId=packet.windowId,
 							action=packet.action,
 							accepted=packet.accepted,

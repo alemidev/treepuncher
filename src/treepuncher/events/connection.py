@@ -1,4 +1,4 @@
-from aiocraft.mc.definitions import Player
+from aiocraft.types import Player
 from .base import BaseEvent
 
 class PlayerJoinEvent(BaseEvent):

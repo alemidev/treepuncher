@@ -1,8 +1,5 @@
 #!/usr/bin/env python
 import os
-import re
-import sys
-import asyncio
 import logging
 import argparse
 import inspect
@@ -20,9 +17,9 @@ from .scaffold import ConfigObject
 from .helpers import configure_logging
 
 def main():
-	root = Path(os.getcwd())
 	# TODO would be cool if it was possible to configure addons path, but we need to load addons before doing argparse so we can do helptext
-	# addon_path = Path(args.path) if args.addon_path else ( root/'addons' )
+	#root = Path(os.getcwd())
+	#addon_path = Path(args.path) if args.addon_path else ( root/'addons' )
 	addon_path = Path('addons')
 	addons : Set[Type[Addon]] = set()
 
@@ -34,7 +31,7 @@ def main():
 				obj = getattr(m, obj_name)
 				if obj != Addon and inspect.isclass(obj) and issubclass(obj, Addon):
 					addons.add(obj)
-		except Exception as e:
+		except Exception:
 			print(f"Exception importing addon {py_path}")
 			traceback.print_exc()
 			pass

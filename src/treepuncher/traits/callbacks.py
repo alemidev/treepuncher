@@ -5,8 +5,6 @@ import logging
 from inspect import isclass
 from typing import Dict, List, Set, Any, Callable, Type
 
-from ..events.base import BaseEvent
-
 class CallbacksHolder:
 
 	_callbacks : Dict[Any, List[Callable]]
@@ -17,7 +15,7 @@ class CallbacksHolder:
 		self._callbacks = {}
 		self._tasks = {}
 
-	def callback_keys(self, filter:Type = None) -> Set[Any]:
+	def callback_keys(self, filter:Type | None = None) -> Set[Any]:
 		return set(x for x in self._callbacks.keys() if not filter or (isclass(x) and issubclass(x, filter)))
 
 	def register(self, key:Any, callback:Callable):

@@ -1,13 +1,13 @@
 import json
 from time import time
 
-from aiocraft.mc.definitions import BlockPos
-from aiocraft.mc.proto import (
+from aiocraft.types import BlockPos
+from aiocraft.proto import (
 	PacketMapChunk, PacketBlockChange, PacketMultiBlockChange, PacketSetPassengers, PacketEntityTeleport,
 	PacketSteerVehicle, PacketRelEntityMove, PacketTeleportConfirm
 )
-from aiocraft.mc.proto.play.clientbound import PacketPosition
-from aiocraft.mc.types import twos_comp
+from aiocraft.proto.play.clientbound import PacketPosition
+from aiocraft.primitives import twos_comp
 
 from aiocraft import Chunk, World  # TODO these imports will hopefully change!
 
@@ -70,12 +70,7 @@ class GameWorld(Scaffold):
 			if time() - self._last_steer_vehicle >= 5:
 				self._last_steer_vehicle = time()
 				await self.dispatcher.write(
-					PacketSteerVehicle(
-						self.dispatcher.proto,
-						forward=0,
-						sideways=0,
-						jump=0
-					)
+					PacketSteerVehicle(forward=0, sideways=0, jump=0)
 				)
 
 		@self.on_packet(PacketPosition)
@@ -86,10 +81,7 @@ class GameWorld(Scaffold):
 				self.position.x, self.position.y, self.position.z
 			)
 			await self.dispatcher.write(
-				PacketTeleportConfirm(
-					self.dispatcher.proto,
-					teleportId=packet.teleportId
-				)
+				PacketTeleportConfirm(teleportId=packet.teleportId)
 			)
 
 		# Since this might require more resources, allow to disable it
@@ -118,7 +110,7 @@ class GameWorld(Scaffold):
 					x_off = (entry['horizontalPos'] >> 4 ) & 15
 					z_off = entry['horizontalPos'] & 15
 					pos = BlockPos(x_off + chunk_x_off, entry['y'], z_off + chunk_z_off)
-					self.world.put_block(pos.x,pos.y, pos.z, entry['blockId'])
+					self.world.put_block(pos.i_x, pos.i_y, pos.i_z, entry['blockId'])
 					self.run_callbacks(BlockUpdateEvent, BlockUpdateEvent(pos, entry['blockId']))
 			elif self.dispatcher.proto < 760:
 				x = twos_comp((packet.chunkCoordinates >> 42) & 0x3FFFFF, 22)
@@ -130,7 +122,7 @@ class GameWorld(Scaffold):
 					dz = ((loc & 0x0FFF) >> 4 ) & 0x0F
 					dy = ((loc & 0x0FFF)      ) & 0x0F
 					pos = BlockPos(16*x + dx, 16*y + dy, 16*z + dz)
-					self.world.put_block(pos.x, pos.y, pos.z, state)
+					self.world.put_block(pos.i_x, pos.i_y, pos.i_z, state)
 					self.run_callbacks(BlockUpdateEvent, BlockUpdateEvent(pos, state))
 			else:
 				self.logger.error("Cannot process MultiBlockChange for protocol %d", self.dispatcher.proto)

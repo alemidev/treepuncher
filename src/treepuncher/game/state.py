@@ -3,8 +3,8 @@ import datetime
 import json
 
 #from aiocraft.client import MinecraftClient
-from aiocraft.mc.definitions import Gamemode, Dimension, Difficulty
-from aiocraft.mc.proto import (
+from aiocraft.types import Gamemode, Dimension, Difficulty
+from aiocraft.proto import (
 	PacketRespawn, PacketLogin, PacketUpdateHealth, PacketExperience, PacketSettings,
 	PacketClientCommand, PacketAbilities, PacketDifficulty
 )
@@ -58,7 +58,7 @@ class GameState(Scaffold):
 		async def on_player_respawning(packet:PacketRespawn):
 			self.gamemode = Gamemode(packet.gamemode)
 			if isinstance(packet.dimension, dict):
-				self.logger.info("Received dimension data: %s", json.dumps(packet.dimensionCodec, indent=2))
+				self.logger.info("Received dimension data: %s", json.dumps(packet.dimension, indent=2))
 				self.dimension = Dimension.from_str(packet.dimension['effects'])
 			else:
 				self.dimension = Dimension(packet.dimension)
@@ -106,7 +106,6 @@ class GameState(Scaffold):
 			self.run_callbacks(JoinGameEvent, JoinGameEvent(self.dimension, self.difficulty, self.gamemode))
 			await self.dispatcher.write(
 				PacketSettings(
-					self.dispatcher.proto,
 					locale="en_US",
 					viewDistance=4,
 					chatFlags=0,
@@ -115,7 +114,7 @@ class GameState(Scaffold):
 					mainHand=0,
 				)
 			)
-			await self.dispatcher.write(PacketClientCommand(self.dispatcher.proto, actionId=0))
+			await self.dispatcher.write(PacketClientCommand(actionId=0))
 
 		@self.on_packet(PacketUpdateHealth)
 		async def player_hp_cb(packet:PacketUpdateHealth):
@@ -132,7 +131,7 @@ class GameState(Scaffold):
 				self.logger.warning("Died, attempting to respawn")
 				await asyncio.sleep(0.5) # TODO make configurable
 				await self.dispatcher.write(
-					PacketClientCommand(self.dispatcher.proto, actionId=0) # respawn
+					PacketClientCommand(actionId=0) # respawn
 				)
 
 		@self.on_packet(PacketExperience)

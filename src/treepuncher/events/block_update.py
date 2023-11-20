@@ -1,4 +1,4 @@
-from aiocraft.mc.definitions import BlockPos
+from aiocraft.types import BlockPos
 
 from .base import BaseEvent
 

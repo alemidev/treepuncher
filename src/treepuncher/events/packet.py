@@ -1,4 +1,4 @@
-from aiocraft.mc.packet import Packet
+from aiocraft.packet import Packet
 
 from .base import BaseEvent
 

@@ -1,8 +1,8 @@
 from typing import List
 
-from aiocraft.mc.definitions import Item
-from aiocraft.mc.proto.play.clientbound import PacketSetSlot, PacketHeldItemSlot as PacketHeldItemChange
-from aiocraft.mc.proto.play.serverbound import PacketHeldItemSlot
+from aiocraft.types import Item
+from aiocraft.proto.play.clientbound import PacketSetSlot, PacketHeldItemSlot as PacketHeldItemChange
+from aiocraft.proto.play.serverbound import PacketHeldItemSlot
 
 from ..scaffold import Scaffold
 
@@ -13,7 +13,7 @@ class GameInventory(Scaffold):
 
 	async def set_slot(self, slot:int):
 		self.slot = slot
-		await self.dispatcher.write(PacketHeldItemSlot(self.dispatcher.proto, slotId=slot))
+		await self.dispatcher.write(PacketHeldItemSlot(slotId=slot))
 
 	@property
 	def hotbar(self) -> List[Item]:

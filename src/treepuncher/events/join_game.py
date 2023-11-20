@@ -1,4 +1,4 @@
-from aiocraft.mc.definitions import Dimension, Difficulty, Gamemode
+from aiocraft.types import Dimension, Difficulty, Gamemode
 
 from .base import BaseEvent
 

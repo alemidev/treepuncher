@@ -4,4 +4,3 @@ from .tablist import GameTablist
 from .chat import GameChat
 from .world import GameWorld
 from .container import GameContainer
-from .position import GamePosition
