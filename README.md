@@ -16,6 +16,7 @@ an hackable headless Minecraft client, built with [aiocraft](https://git.alemi.d
 
 ### as an application
 `treepuncher` ships as a standalone CLI application which you can run with `python -m treepuncher`
+
  * create your first addon (for example, a simple chat logger) inside `./addons/chat_logger.py`
 ```py
 from dataclasses import dataclass
@@ -42,6 +43,8 @@ client_id = your_microsoft_authenticator_client_id
 client_secret = your_microsoft_authenticator_client_secret
 code = microsoft_auth_code
 
+; you must specify the addon section to have it loaded,
+;  even if it doesn't take any config value
 [ChatLogger]
 prefix = CHAT |::
 ```
