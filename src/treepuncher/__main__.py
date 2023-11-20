@@ -96,6 +96,7 @@ def main():
 			online_mode=not args.offline,
 			legacy=args.mojang,
 			use_packet_whitelist=args.use_packet_whitelist,
+			code=args.code,
 		)
 	except MissingParameterError as e:
 		return logging.error(e.args[0])
