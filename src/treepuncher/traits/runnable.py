@@ -2,7 +2,7 @@ import asyncio
 import logging
 
 from typing import Optional
-from signal import signal, SIGINT, SIGTERM, SIGABRT
+from signal import signal, SIGINT, SIGTERM
 
 class Runnable:
 	_is_running : bool
@@ -32,6 +32,10 @@ class Runnable:
 				else:
 					logging.info("Received SIGINT, stopping gracefully...")
 				self._stop_task = asyncio.get_event_loop().create_task(self.stop(force=self._stop_task is not None))
+			if signum == SIGTERM:
+				logging.info("Received SIGTERM, terminating")
+				self._stop_task = asyncio.get_event_loop().create_task(self.stop(force=True))
+
 
 		signal(SIGINT, signal_handler)
 
