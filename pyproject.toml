@@ -22,7 +22,7 @@ dependencies = [
     "termcolor",
     "apscheduler",
     "aioconsole",
-    "aiocraft @ git+https://git.alemi.dev/aiocraft@v0.3.0",
+    "aiocraft @ git+https://git.alemi.dev/alemi/aiocraft.git@v0.3.0",
 ]
 dynamic = ["version"]
 
