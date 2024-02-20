@@ -10,12 +10,23 @@ an hackable headless Minecraft client, built with **[aiocraft](https://git.alemi
 
 ## Quick Start
 `treepuncher` is still in development and thus not available yet on PyPI, to install it fetch directly from git:
- * `pip install "git+https://git.alemi.dev/treepuncher@v0.3.0"`
+ * `pip install "git+https://git.alemi.dev/treepuncher.git@v0.3.0"`
+
+currently only 1.16.5 is being targeted, so while simple things _should_ work on any version, more complex interactions may break outside 1.16.5
 
 `treepuncher` can both be run as a pluggable CLI application or as a library, depending on how much you need to customize its behaviour
 
 ### as an application
 `treepuncher` ships as a standalone CLI application which you can run with `python -m treepuncher`
+
+ * prepare a runtime directory with this layout:
+```
+.
+|- log/           # will contain rotating log files: MYBOT.log, MYBOT.log.1 ...
+|- data/          # will contain session files: MYBOT.session
+|- addons/        # put your addons here
+|- MYBOT.ini      # your configuration file for one session
+```
 
  * create your first addon (for example, a simple chat logger) inside `./addons/chat_logger.py`
 ```py
@@ -24,17 +35,17 @@ from treepuncher import Addon, ConfigObject
 from treepuncher.events import ChatEvent
 
 class ChatLogger(Addon):
-	@dataclass
-	class Options(ConfigObject):
-		prefix : str = ""
-	config : Options
+    @dataclass                     # must be a dataclass
+    class Options(ConfigObject):   # must extend ConfigObject
+        prefix : str = ""
+    config : Options               # must add this type annotation
 
-	def register(self):
-		@self.client.on(ChatEvent)
-		async def print_chat(event: ChatEvent):
-			print(f"{event.user} >> {event.text})
+    def register(self):            # register all callbacks and schedulers in here
+        @self.client.on(ChatEvent)
+        async def print_chat(event: ChatEvent):
+            print(f"{event.user} >> {event.text})
 ```
- * create a config file for your session (for example, `my_bot`): `my_bot.ini`
+ * create a config file for your session (for example, `MYBOT`): `MYBOT.ini`
 ```ini
 [Treepuncher]
 server = your.server.com
@@ -48,7 +59,7 @@ code = microsoft_auth_code
 [ChatLogger]
 prefix = CHAT |::
 ```
- * run the treepuncher client : `python -m treepuncher my_bot` (note that session name must be same as config file, minus `.ini`)
+ * run the treepuncher client : `python -m treepuncher MYBOT` (note that session name must be same as config file, minus `.ini`)
 
 ### as a library
 under the hood `treepuncher` is just a library and it's possible to invoke it programmatically
@@ -96,5 +107,5 @@ legacy Yggdrasil authentication supports both an hardcoded password or a pre-aut
 
 
 ## Contributing
-development is managed by [ftbsc](https://fantabos.co), mostly on [our git](https://git.fantabos.co). If you'd like to contribute, get in contact with any of us using any available form
+development is managed by [ftbsc](https://fantabos.co), mostly on [our git](https://git.fantabos.co). If you'd like to contribute, get in contact with any of us using any available channel!
 
