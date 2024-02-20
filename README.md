@@ -1,5 +1,5 @@
 # treepuncher
-an hackable headless Minecraft client, built with [aiocraft](https://git.alemi.dev/aiocraft/about)
+an hackable headless Minecraft client, built with **[aiocraft](https://git.alemi.dev/aiocraft.git/about)**
 
 ### Features
  * persistent storage
